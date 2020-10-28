@@ -1,4 +1,4 @@
-module gin-sandbox
+module kwanjai
 
 go 1.15
 

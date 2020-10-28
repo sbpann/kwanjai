@@ -2,7 +2,7 @@ package models
 
 import (
 	"fmt"
-	"gin-sandbox/config"
+	"kwanjai/config"
 	"math/rand"
 	"net/smtp"
 	"time"

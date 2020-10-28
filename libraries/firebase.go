@@ -2,7 +2,7 @@ package libraries
 
 import (
 	"context"
-	"gin-sandbox/config"
+	"kwanjai/config"
 	"log"
 
 	firebase "firebase.google.com/go"

@@ -1,7 +1,7 @@
 package controllers
 
 import (
-	"gin-sandbox/models"
+	"kwanjai/models"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -26,7 +26,7 @@ func Login(c *gin.Context) {
 // Register new user
 func Register(c *gin.Context) {
 	user := new(models.User)
-	err := c.ShouldBindJSON(user)
+	err := c.ShouldBind(user)
 	var status int
 	var detail string
 	if err != nil {

@@ -3,7 +3,7 @@ package models
 import (
 	"context"
 	"fmt"
-	"gin-sandbox/libraries"
+	"kwanjai/libraries"
 	"net/http"
 	"strings"
 	"time"
@@ -14,11 +14,11 @@ import (
 
 // User model
 type User struct {
-	Username       string `json:"username" binding:"required"`
-	Email          string `json:"email" binding:"required,email"`
-	Firstname      string `json:"fisrtname"`
-	Lastname       string `json:"lastname"`
-	Password       string `json:"password" binding:"required,min=8"`
+	Username       string `form:"username" json:"username" binding:"required"`
+	Email          string `form:"email" json:"email" binding:"required,email"`
+	Firstname      string `form:"firstname" json:"firstname"`
+	Lastname       string `form:"lastname" json:"lastname"`
+	Password       string `form:"password" ,json:"password" binding:"required,min=8"`
 	HashedPassword string
 	IsSuperUser    bool `json:"is_superuser"`
 	IsVerified     bool `json:"is_verified"`
@@ -168,7 +168,7 @@ func (login *LoginCredential) login(loginOption *loginOption) (int, string) {
 // HashPassword before register
 func (user *User) HashPassword() {
 	hashedpassword, _ := libraries.HashPassword(user.Password)
-	user.Password = "created"
+	user.Password = "password_is_created"
 	user.HashedPassword = hashedpassword
 }
 

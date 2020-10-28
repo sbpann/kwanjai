@@ -1,8 +1,8 @@
 package main
 
 import (
-	"gin-sandbox/config"
-	"gin-sandbox/controllers"
+	"kwanjai/config"
+	"kwanjai/controllers"
 	"log"
 	"os"
 
