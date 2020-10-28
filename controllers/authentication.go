@@ -1,35 +1,40 @@
 package controllers
 
 import (
-	"gin-sandbox/libraries"
 	"gin-sandbox/models"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
 
 // Login function returns status of password validiation as booleans
 func Login(c *gin.Context) {
-	user := new(models.User)
-	c.BindJSON(user)
-	status, detail := models.Login(user)
-	if status != 200 {
-		c.JSON(status, gin.H{
-			"detail": detail,
-		})
+	login := new(models.LoginCredential)
+	err := c.ShouldBindJSON(login)
+	var status int
+	var detail string
+	if err != nil {
+		status, detail = http.StatusBadRequest, "Login form is not valid."
 	} else {
-		c.JSON(status, gin.H{
-			"detail": detail,
-		})
+		status, detail = models.Login(login)
 	}
+	c.JSON(status, gin.H{
+		"detail": detail,
+	})
 }
 
 // Register new user
 func Register(c *gin.Context) {
 	user := new(models.User)
-	c.BindJSON(&user)
-	hashedpassword, _ := libraries.HashPassword(user.Password)
-	user.Password = hashedpassword
-	status, detail := models.Register(user)
+	err := c.ShouldBindJSON(user)
+	var status int
+	var detail string
+	if err != nil {
+		status, detail = http.StatusBadRequest, "Registration form is not valid."
+	} else {
+		user.HashPassword()
+		status, detail = models.Register(user)
+	}
 	c.JSON(status, gin.H{
 		"detail": detail,
 	})
