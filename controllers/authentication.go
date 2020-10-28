@@ -11,7 +11,7 @@ import (
 func Login(c *gin.Context) {
 	user := new(models.User)
 	c.BindJSON(user)
-	status, detail := user.Login()
+	status, detail := models.Login(user)
 	if status != 200 {
 		c.JSON(status, gin.H{
 			"detail": detail,
@@ -29,7 +29,7 @@ func Register(c *gin.Context) {
 	c.BindJSON(&user)
 	hashedpassword, _ := libraries.HashPassword(user.Password)
 	user.Password = hashedpassword
-	status, detail := user.CreateUser()
+	status, detail := models.Register(user)
 	c.JSON(status, gin.H{
 		"detail": detail,
 	})

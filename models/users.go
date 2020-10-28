@@ -18,8 +18,33 @@ type User struct {
 	Password  string `json:"password"`
 }
 
-// CreateUser method for usermodel
-func (user *User) CreateUser() (int, string) {
+type loginOption struct {
+	fromRegister bool
+}
+
+// UserPerform action on model
+type userPerform interface {
+	createUser() (int, string)
+	login(loginOption *loginOption) (int, string)
+}
+
+// Login user
+func Login(perform userPerform) (int, string) {
+	option := loginOption{fromRegister: false}
+	return perform.login(&option)
+}
+
+// Register user
+func Register(perform userPerform) (int, string) {
+	status, detail := perform.createUser()
+	if status != http.StatusCreated {
+		return status, detail
+	}
+	option := loginOption{fromRegister: true}
+	return perform.login(&option)
+}
+
+func (user *User) createUser() (int, string) {
 	ctx := context.Background()
 	firebaseClient, err := libraries.FirebaseApp().Firestore(ctx)
 	user.Username = strings.ToLower(user.Username)
@@ -45,8 +70,7 @@ func (user *User) CreateUser() (int, string) {
 	return http.StatusCreated, "User created successfully."
 }
 
-// Login user
-func (user *User) Login() (int, string) {
+func (user *User) login(loginOption *loginOption) (int, string) {
 	ctx := context.Background()
 	firebaseClient, err := libraries.FirebaseApp().Firestore(ctx)
 	user.Username = strings.ToLower(user.Username)
@@ -68,6 +92,9 @@ func (user *User) Login() (int, string) {
 	passwordPass := libraries.CheckPasswordHash(user.Password, hashedPassword.(string))
 	if !passwordPass {
 		return http.StatusBadRequest, "Cannot login with provided credential."
+	}
+	if loginOption.fromRegister {
+		return http.StatusCreated, "User created successfully."
 	}
 	return http.StatusOK, "Logged in successfully."
 }
