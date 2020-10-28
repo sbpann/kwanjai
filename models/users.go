@@ -18,7 +18,7 @@ type User struct {
 	Email          string `json:"email" binding:"required,email"`
 	Firstname      string `json:"fisrtname"`
 	Lastname       string `json:"lastname"`
-	Password       string `json:"password" binding:"required"`
+	Password       string `json:"password" binding:"required,min=8"`
 	HashedPassword string
 	IsSuperUser    bool `json:"is_superuser"`
 	IsVerified     bool `json:"is_verified"`
@@ -38,6 +38,7 @@ type loginOption struct {
 type userPerform interface {
 	createUser() (int, string)
 	login(loginOption *loginOption) (int, string)
+	sendVerificationEmail() (int, string)
 }
 
 type authenticationPerform interface {
@@ -54,6 +55,10 @@ func Login(perform authenticationPerform) (int, string) {
 func Register(perform userPerform) (int, string) {
 	status, detail := perform.createUser()
 	if status != http.StatusCreated {
+		return status, detail
+	}
+	status, detail = perform.sendVerificationEmail()
+	if status != http.StatusOK {
 		return status, detail
 	}
 	option := loginOption{fromRegister: true}
@@ -95,6 +100,30 @@ func (user *User) createUser() (int, string) {
 	return http.StatusCreated, "User created successfully."
 }
 
+func (user *User) login(loginOption *loginOption) (int, string) {
+	login := new(LoginCredential)
+	login.ID = user.Username
+	login.Password = user.Password
+	return login.login(loginOption)
+}
+
+func (user *User) sendVerificationEmail() (int, string) {
+	email := new(VerificationEmail)
+	email.Initialize(user.Username, user.Email)
+	ctx := context.Background()
+	firestoreClient, err := libraries.FirebaseApp().Firestore(ctx)
+	defer firestoreClient.Close()
+	if err != nil {
+		return http.StatusInternalServerError, "Cannot access Firestore."
+	}
+	_, err = firestoreClient.Collection("verificationemail").Doc(email.User).Set(ctx, email)
+	if err != nil {
+		return http.StatusInternalServerError, "Cannot access Firestore."
+	}
+	email.Send()
+	return http.StatusOK, "Email sent."
+}
+
 func (login *LoginCredential) login(loginOption *loginOption) (int, string) {
 	hashedPassword := ""
 	if loginOption.fromRegister {
@@ -134,13 +163,6 @@ func (login *LoginCredential) login(loginOption *loginOption) (int, string) {
 		return http.StatusBadRequest, "Cannot login with provided credential."
 	}
 	return http.StatusOK, "Logged in successfully."
-}
-
-func (user *User) login(loginOption *loginOption) (int, string) {
-	login := new(LoginCredential)
-	login.ID = user.Username
-	login.Password = user.Password
-	return login.login(loginOption)
 }
 
 // HashPassword before register
