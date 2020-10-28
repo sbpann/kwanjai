@@ -16,3 +16,6 @@
 
 # Secret file
 .secret
+
+# gin hotreload file
+gin-bin

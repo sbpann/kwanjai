@@ -57,10 +57,10 @@ func Register(perform userPerform) (int, string) {
 	if status != http.StatusCreated {
 		return status, detail
 	}
-	status, detail = perform.sendVerificationEmail()
-	if status != http.StatusOK {
-		return status, detail
-	}
+	// status, detail = perform.sendVerificationEmail()
+	// if status != http.StatusOK {
+	// 	return status, detail
+	// }
 	option := loginOption{fromRegister: true}
 	return perform.login(&option)
 }
