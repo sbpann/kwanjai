@@ -1,8 +1,8 @@
 package libraries
 
 import (
-	"context"
 	"fmt"
+	"kwanjai/config"
 
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
 	secretmanagerpb "google.golang.org/genproto/googleapis/cloud/secretmanager/v1"
@@ -11,8 +11,7 @@ import (
 // AccessSecretVersion for secret value
 func AccessSecretVersion(name string) (string, error) {
 	InitializeGCP()
-	ctx := context.Background()
-	client, err := secretmanager.NewClient(ctx)
+	client, err := secretmanager.NewClient(config.Context)
 	if err != nil {
 		return "error", fmt.Errorf("failed to create secretmanager client: %v", err)
 	}
@@ -21,7 +20,7 @@ func AccessSecretVersion(name string) (string, error) {
 		Name: name,
 	}
 
-	result, err := client.AccessSecretVersion(ctx, req)
+	result, err := client.AccessSecretVersion(config.Context, req)
 	if err != nil {
 		return "error", fmt.Errorf("failed to access secret version: %v", err)
 	}

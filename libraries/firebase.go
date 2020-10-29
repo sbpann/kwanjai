@@ -1,7 +1,6 @@
 package libraries
 
 import (
-	"context"
 	"kwanjai/config"
 	"log"
 
@@ -11,9 +10,8 @@ import (
 
 // FirebaseApp initialize firebase by credential.json
 func FirebaseApp() *firebase.App {
-	ctx := context.Background()
 	sa := option.WithCredentialsFile(config.BaseDirectory + "/.secret/credential.json")
-	app, err := firebase.NewApp(ctx, nil, sa)
+	app, err := firebase.NewApp(config.Context, nil, sa)
 	if err != nil {
 		log.Println(err)
 	}
