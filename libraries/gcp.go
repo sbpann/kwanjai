@@ -1,6 +1,7 @@
 package libraries
 
 import (
+	"kwanjai/config"
 	"os"
 )
 
@@ -13,7 +14,7 @@ func InitializeGCP() {
 	}
 	defaultCredential := os.Getenv("GOOGLE_APPLICATION_CREDENTIALS")
 	if defaultCredential == "" {
-		// os.Setenv("GOOGLE_APPLICATION_CREDENTIALS", config.BaseDirectory+"/.secret/credential.json")
+		os.Setenv("GOOGLE_APPLICATION_CREDENTIALS", config.BaseDirectory+"/.secret/credential.json")
 	}
 	isInitialzed = true
 }

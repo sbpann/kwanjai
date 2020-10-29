@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"kwanjai/config"
 	"math/rand"
+	"net/http"
 	"net/smtp"
 	"time"
 
@@ -41,7 +42,7 @@ func (s *smtpServer) Address() string {
 }
 
 // Send email
-func (email *VerificationEmail) Send() error {
+func (email *VerificationEmail) Send() (int, string) {
 	// Sender data.
 	from := "surus.d6101@gmail.com"
 	password := config.EmailServicePassword
@@ -58,9 +59,7 @@ func (email *VerificationEmail) Send() error {
 	auth := smtp.PlainAuth("", from, password, smtpServer.host)
 	err := smtp.SendMail(smtpServer.Address(), auth, from, to, []byte(message))
 	if err != nil {
-		fmt.Println(err)
-		return err
+		return http.StatusInternalServerError, err.Error()
 	}
-	fmt.Println("Email Sent!")
-	return nil
+	return http.StatusOK, "Email sent."
 }

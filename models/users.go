@@ -2,27 +2,28 @@ package models
 
 import (
 	"context"
-	"fmt"
 	"kwanjai/libraries"
 	"net/http"
 	"strings"
 	"time"
 
+	"cloud.google.com/go/firestore"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
 // User model
 type User struct {
-	Username       string `form:"username" json:"username" binding:"required"`
+	Username       string `form:"username" json:"username" binding:"required,ne=anonymous"`
 	Email          string `form:"email" json:"email" binding:"required,email"`
 	Firstname      string `form:"firstname" json:"firstname"`
 	Lastname       string `form:"lastname" json:"lastname"`
-	Password       string `form:"password" ,json:"password" binding:"required,min=8"`
-	HashedPassword string
-	IsSuperUser    bool `json:"is_superuser"`
-	IsVerified     bool `json:"is_verified"`
-	JoinedDate     string
+	Password       string `form:"password" json:"password" binding:"required,min=8"`
+	HashedPassword string `json:",omitempty"`
+	IsSuperUser    bool   `json:"is_superuser"`
+	IsVerified     bool   `json:"is_verified"`
+	IsActive       bool   `json:"is_active"`
+	JoinedDate     string `json:"joined_date"`
 }
 
 // LoginCredential info
@@ -31,47 +32,37 @@ type LoginCredential struct {
 	Password string `json:"password" binding:"required"`
 }
 
-type loginOption struct {
-	fromRegister bool
-}
-
 type userPerform interface {
-	createUser() (int, string)
-	login(loginOption *loginOption) (int, string)
-	sendVerificationEmail() (int, string)
+	createUser() (int, string, *User)
+	findUser(username string) (int, string, *User)
 }
 
 type authenticationPerform interface {
-	login(loginOption *loginOption) (int, string)
+	login() (int, string)
 }
 
 // Login user
 func Login(perform authenticationPerform) (int, string) {
-	option := loginOption{fromRegister: false}
-	return perform.login(&option)
+	return perform.login()
 }
 
 // Register user
-func Register(perform userPerform) (int, string) {
-	status, detail := perform.createUser()
-	if status != http.StatusCreated {
-		return status, detail
+func Register(perform userPerform) (int, string, *User) {
+	status, message, user := perform.createUser()
+	if status != http.StatusCreated || user == nil {
+		return status, message, user
 	}
-	// status, detail = perform.sendVerificationEmail()
-	// if status != http.StatusOK {
-	// 	return status, detail
-	// }
-	option := loginOption{fromRegister: true}
-	return perform.login(&option)
+	// status, message = perform.sendVerificationEmail()
+	return status, message, user
 }
 
-func (user *User) createUser() (int, string) {
+func (user *User) createUser() (int, string, *User) {
 	ctx := context.Background()
 	firestoreClient, err := libraries.FirebaseApp().Firestore(ctx)
 	defer firestoreClient.Close()
 	user.Username = strings.ToLower(user.Username)
 	if err != nil {
-		return http.StatusInternalServerError, "Cannot initialize Firestore."
+		return http.StatusInternalServerError, err.Error(), nil
 	}
 	getUser, err := firestoreClient.Collection("users").Doc(user.Username).Get(ctx)
 	if err != nil {
@@ -82,29 +73,52 @@ func (user *User) createUser() (int, string) {
 		}
 	}
 	if getUser.Exists() {
-		return http.StatusConflict, "User already exist."
+		return http.StatusConflict, "User already exist.", nil
 	}
 	findEmail := firestoreClient.Collection("users").Where("Email", "==", user.Email).Documents(ctx)
 	foundEmail, err := findEmail.GetAll()
 	if err != nil {
-		return http.StatusInternalServerError, "Cannot access Firestore."
+		return http.StatusInternalServerError, err.Error(), nil
 	}
 	if len(foundEmail) > 0 {
-		return http.StatusConflict, "There is registered user with this email."
+		return http.StatusConflict, "There is registered user with this email.", nil
 	}
 	user.initialize()
 	_, err = firestoreClient.Collection("users").Doc(user.Username).Set(ctx, user)
 	if err != nil {
-		return http.StatusInternalServerError, "Cannot create user."
+		return http.StatusInternalServerError, err.Error(), nil
 	}
-	return http.StatusCreated, "User created successfully."
+	user.HashedPassword = ""
+	return http.StatusCreated, "User created successfully.", user
 }
 
-func (user *User) login(loginOption *loginOption) (int, string) {
+func (user *User) login() (int, string) {
 	login := new(LoginCredential)
 	login.ID = user.Username
 	login.Password = user.Password
-	return login.login(loginOption)
+	return login.login()
+}
+
+func (user *User) findUser(username string) (int, string, *User) {
+	if username == "" {
+		return http.StatusNotFound, "User not found.", nil
+	}
+	ctx := context.Background()
+	firestoreClient, err := libraries.FirebaseApp().Firestore(ctx)
+	defer firestoreClient.Close()
+	if err != nil {
+		return http.StatusInternalServerError, err.Error(), nil
+	}
+	getUser, err := firestoreClient.Collection("users").Doc(username).Get(ctx)
+	if !getUser.Exists() {
+		return http.StatusNotFound, "User not found.", nil
+	}
+	err = getUser.DataTo(&user)
+	if err != nil {
+		return http.StatusInternalServerError, err.Error(), nil
+	}
+	user.HashedPassword = ""
+	return http.StatusOK, "Get user successfully.", user
 }
 
 func (user *User) sendVerificationEmail() (int, string) {
@@ -114,27 +128,25 @@ func (user *User) sendVerificationEmail() (int, string) {
 	firestoreClient, err := libraries.FirebaseApp().Firestore(ctx)
 	defer firestoreClient.Close()
 	if err != nil {
-		return http.StatusInternalServerError, "Cannot access Firestore."
+		return http.StatusInternalServerError, err.Error()
 	}
 	_, err = firestoreClient.Collection("verificationemail").Doc(email.User).Set(ctx, email)
 	if err != nil {
-		return http.StatusInternalServerError, "Cannot access Firestore."
+		return http.StatusInternalServerError, err.Error()
 	}
-	email.Send()
-	return http.StatusOK, "Email sent."
+	status, message := email.Send()
+	return status, message
 }
 
-func (login *LoginCredential) login(loginOption *loginOption) (int, string) {
+func (login *LoginCredential) login() (int, string) {
 	hashedPassword := ""
-	if loginOption.fromRegister {
-		return http.StatusCreated, "User created successfully."
-	}
+	username := ""
 	login.ID = strings.ToLower(login.ID)
 	ctx := context.Background()
 	firestoreClient, err := libraries.FirebaseApp().Firestore(ctx)
 	defer firestoreClient.Close()
 	if err != nil {
-		return http.StatusInternalServerError, "Cannot initialize Firestore."
+		return http.StatusInternalServerError, err.Error()
 	}
 	getUser, err := firestoreClient.Collection("users").Doc(login.ID).Get(ctx)
 	if err != nil {
@@ -144,25 +156,30 @@ func (login *LoginCredential) login(loginOption *loginOption) (int, string) {
 			findEmail := firestoreClient.Collection("users").Where("Email", "==", login.ID).Documents(ctx)
 			foundEmail, err := findEmail.GetAll()
 			if err != nil {
-				return http.StatusInternalServerError, "Cannot access Firestore."
+				return http.StatusInternalServerError, err.Error()
 			}
 			if len(foundEmail) > 0 {
 				hashedPassword = foundEmail[0].Data()["HashedPassword"].(string)
+				username = foundEmail[0].Data()["Username"].(string)
 			} else {
 				return http.StatusBadRequest, "Cannot login with provided credential."
 			}
 		} else {
-			return http.StatusInternalServerError, "Cannot access Firestore."
+			return http.StatusInternalServerError, err.Error()
 		}
 	} else {
 		hashedPassword = getUser.Data()["HashedPassword"].(string)
+		username = getUser.Data()["Username"].(string)
 	}
-	fmt.Println(hashedPassword)
 	passwordPass := libraries.CheckPasswordHash(login.Password, hashedPassword)
-	if !passwordPass && !loginOption.fromRegister {
+	if !passwordPass {
 		return http.StatusBadRequest, "Cannot login with provided credential."
 	}
-	return http.StatusOK, "Logged in successfully."
+	_, err = firestoreClient.Collection("users").Doc(username).Update(ctx, []firestore.Update{{Path: "IsActive", Value: true}})
+	if err != nil {
+		return http.StatusInternalServerError, err.Error()
+	}
+	return http.StatusOK, username
 }
 
 // HashPassword before register
