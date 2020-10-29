@@ -44,19 +44,19 @@ func (s *smtpServer) Address() string {
 func (email *VerificationEmail) Send() error {
 	// Sender data.
 	from := "surus.d6101@gmail.com"
-	password := "secret"
+	password := config.EmailServicePassword
 	to := []string{email.Email}
 	smtpServer := smtpServer{host: "smtp.gmail.com", port: "587"}
 	verificationLink := fmt.Sprintf("%v/verify/%v/", config.FrontendURL, email.UUID)
-	message := []byte(fmt.Sprintf("To: %v\r\n"+
+	message := fmt.Sprintf("To: %v\r\n"+
 		"Subject: verification email.\r\n"+
 		"\r\n"+
 		"Hi %v.\r\n"+
 		"Please verify your email using following link.\r\n"+
 		"%v\r\n"+
-		"Your verification code is: %v\r\n", email.User, to[0], verificationLink, email.Key))
+		"Your verification code is: %v\r\n", email.User, to[0], verificationLink, email.Key)
 	auth := smtp.PlainAuth("", from, password, smtpServer.host)
-	err := smtp.SendMail(smtpServer.Address(), auth, from, to, message)
+	err := smtp.SendMail(smtpServer.Address(), auth, from, to, []byte(message))
 	if err != nil {
 		fmt.Println(err)
 		return err

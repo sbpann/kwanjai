@@ -3,6 +3,7 @@ package main
 import (
 	"kwanjai/config"
 	"kwanjai/controllers"
+	"kwanjai/libraries"
 	"log"
 	"os"
 
@@ -11,10 +12,13 @@ import (
 
 func main() {
 	var err error
+
 	config.BaseDirectory, err = os.Getwd()
 	config.FrontendURL = "http://localhost:8000"
+	config.EmailServicePassword, err = libraries.AccessSecretVersion("projects/978676563951/secrets/EmailServicePassword/versions/1")
+
 	if err != nil {
-		log.Println(err)
+		log.Fatalln(err)
 	}
 	r := gin.Default()
 	r.POST("/register", controllers.Register)

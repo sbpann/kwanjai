@@ -1,6 +1,7 @@
 package config
 
 var (
-	BaseDirectory string
-	FrontendURL   string
+	BaseDirectory        string
+	FrontendURL          string
+	EmailServicePassword string
 )
