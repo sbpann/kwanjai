@@ -131,3 +131,11 @@ func (user *User) initialize() {
 	user.IsVerified = false
 	user.JoinedDate = time.Now().Format(time.RFC3339)
 }
+
+// MakeAnonymous user
+func (user *User) MakeAnonymous() {
+	user.Username = "anonymous"
+	user.IsSuperUser = false
+	user.IsVerified = false
+	user.JoinedDate = time.Now().Format(time.RFC3339)
+}

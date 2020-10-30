@@ -60,11 +60,15 @@ func Register(ginContext *gin.Context) {
 
 // Logout endpoint
 func Logout(ginContext *gin.Context) {
+	user, exist := ginContext.Get("user")
+	if !exist {
+		ginContext.JSON(http.StatusInternalServerError, gin.H{"message": "No user found in backend context."})
+	}
+	ginContext.JSON(http.StatusOK, gin.H{"user": user, "exist": exist})
 	var (
 		passed           bool
 		accessPassed     bool
 		refreshPassed    bool
-		user             string
 		accessTokenUUID  string
 		refreshTokenUUID string
 	)
@@ -79,7 +83,6 @@ func Logout(ginContext *gin.Context) {
 	for !passed && timer.Before(timeout) {
 		accessPassed = logout.AccessPassed
 		refreshPassed = logout.RefreshPassed
-		user = logout.User
 		accessTokenUUID = logout.AccessTokenUUID
 		refreshTokenUUID = logout.RefreshTokenUUID
 		passed = accessPassed == true && refreshPassed == true
@@ -89,12 +92,13 @@ func Logout(ginContext *gin.Context) {
 		ginContext.JSON(http.StatusUnauthorized, gin.H{"message": "token verification failed."})
 		return
 	}
-	go libraries.DeleteToken(user, accessTokenUUID)
-	go libraries.DeleteToken(user, refreshTokenUUID)
+	go libraries.DeleteToken(user.(string), accessTokenUUID)
+	go libraries.DeleteToken(user.(string), refreshTokenUUID)
 
 	ginContext.JSON(200, gin.H{"message": "logout successfully"})
 }
 
+// RefreshToken endpiont
 func RefreshToken(ginContext *gin.Context) {
 	token := new(libraries.Token)
 	ginContext.ShouldBind(&token)
@@ -132,16 +136,9 @@ func RefreshToken(ginContext *gin.Context) {
 }
 
 func AuthenticateTest(ginContext *gin.Context) {
-	passed, user, _, err := libraries.VerifyToken(ginContext.Request.Header.Get("Authorization"), "access")
-	if !passed && user != "anonymous" {
-		var status int
-		if err.Error() == "user not found" {
-			status = http.StatusNotFound
-		} else {
-			status = http.StatusInternalServerError
-		}
-		ginContext.JSON(status, gin.H{"message": err.Error()})
-		return
+	user, exist := ginContext.Get("user")
+	if !exist {
+		ginContext.JSON(http.StatusInternalServerError, gin.H{"message": "No user found in backend context."})
 	}
-	ginContext.JSON(200, gin.H{"passed": passed, "user": user})
+	ginContext.JSON(http.StatusOK, gin.H{"user": user, "exist": exist})
 }

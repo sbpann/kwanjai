@@ -139,7 +139,7 @@ func VerifyToken(tokenString string, tokenType string) (bool, string, string, er
 	firestoreClient, ferr := FirebaseApp().Firestore(config.Context)
 	defer firestoreClient.Close()
 	if ferr != nil {
-		return false, "", "", ferr
+		return false, "anonymous", "", ferr
 	}
 	uuidVerification, ferr := firestoreClient.Collection("tokenUUID").Doc(username).Get(config.Context)
 	if ferr != nil {
@@ -147,10 +147,10 @@ func VerifyToken(tokenString string, tokenType string) (bool, string, string, er
 			tokenPath := uuidVerification.Ref.Path
 			tokenNotExist := status.Errorf(codes.NotFound, "%q not found", tokenPath)
 			if ferr.Error() == tokenNotExist.Error() {
-				return false, "", "", errors.New("token not found")
+				return false, "anonymous", "", errors.New("token not found")
 			}
 		}
-		return false, "", "", ferr
+		return false, "anonymous", "", ferr
 	}
 	if uuidVerification.Data()[tokenUUID] == nil {
 		return false, "anonymous", "", errors.New("token is not valid")
