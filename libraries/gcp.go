@@ -9,6 +9,9 @@ var isInitialzed bool = false
 
 // InitializeGCP from credential.json.
 func InitializeGCP() {
+	if os.Getenv("GIN_MODE") == "release" {
+		return
+	}
 	if isInitialzed {
 		return
 	}

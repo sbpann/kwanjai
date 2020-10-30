@@ -20,6 +20,7 @@ func main() {
 	libraries.InitializeGCP() // BaseDirectory need to be set before initialization.
 	config.Context = context.Background()
 	config.FrontendURL = "http://localhost:8080"
+	config.FirebaseProjectID = "kwanjai-a3803"
 	config.DefaultAuthenticationBackend = middlewares.JWTAuthorization()
 	config.EmailServicePassword, err = libraries.AccessSecretVersion("projects/978676563951/secrets/EmailServicePassword/versions/1")
 	config.EmailVerficationLifetime = time.Hour * 24 * 7

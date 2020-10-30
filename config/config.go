@@ -9,6 +9,7 @@ import (
 
 var (
 	BaseDirectory                string
+	FirebaseProjectID            string
 	FrontendURL                  string
 	EmailServicePassword         string
 	EmailVerficationLifetime     time.Duration
