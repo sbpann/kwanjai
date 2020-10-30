@@ -11,13 +11,13 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// LoginCredential info
+// LoginCredential info.
 type LoginCredential struct {
 	ID       string `json:"id" binding:"required"`
 	Password string `json:"password" binding:"required"`
 }
 
-// LogoutData to track logout process event
+// LogoutData to track logout process event.
 type LogoutData struct {
 	RefreshPassed    bool
 	AccessPassed     bool
@@ -32,12 +32,12 @@ type authenticationPerform interface {
 	login() (int, string)
 }
 
-// Login user
+// Login user.
 func Login(perform authenticationPerform) (int, string) {
 	return perform.login()
 }
 
-// Verify logout credential
+// Verify logout credential.
 func (logout *LogoutData) Verify(tokenString string, tokenType string) {
 	if tokenType == "access" {
 		logout.AccessPassed, logout.User, logout.AccessTokenUUID, _ = libraries.VerifyToken(tokenString, "access")

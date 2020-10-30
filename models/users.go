@@ -6,12 +6,9 @@ import (
 	"net/http"
 	"strings"
 	"time"
-
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
-// User model
+// User model.
 type User struct {
 	Username       string `form:"username" json:"username" binding:"required,ne=anonymous"`
 	Email          string `form:"email" json:"email" binding:"required,email"`
@@ -27,16 +24,22 @@ type User struct {
 
 type userPerform interface {
 	createUser() (int, string, *User)
-	findUser(username string) (int, string, *User)
+	findUser() (int, string, *User)
 }
 
-// Register user
+// Register user method for interface with controller.
 func Register(perform userPerform) (int, string, *User) {
 	status, message, user := perform.createUser()
 	if status != http.StatusCreated || user == nil {
 		return status, message, user
 	}
-	status, message = user.sendVerificationEmail()
+	status, message = user.SendVerificationEmail()
+	return status, message, user
+}
+
+// Finduser user method for interface with controller.
+func Finduser(perform userPerform) (int, string, *User) {
+	status, message, user := perform.findUser()
 	return status, message, user
 }
 
@@ -47,31 +50,16 @@ func (user *User) createUser() (int, string, *User) {
 		return http.StatusInternalServerError, err.Error(), nil
 	}
 	user.Username = strings.ToLower(user.Username)
-	getUser, err := firestoreClient.Collection("users").Doc(user.Username).Get(config.Context)
-	if err != nil {
-		userPath := getUser.Ref.Path
-		userNotExist := status.Errorf(codes.NotFound, "%q not found", userPath)
-		if err.Error() == userNotExist.Error() {
-			err = nil
-		}
-	}
-	if getUser.Exists() {
-		return http.StatusConflict, "User already exist.", nil
-	}
-	findEmail := firestoreClient.Collection("users").Where("Email", "==", user.Email).Documents(config.Context)
-	foundEmail, err := findEmail.GetAll()
-	if err != nil {
-		return http.StatusInternalServerError, err.Error(), nil
-	}
-	if len(foundEmail) > 0 {
-		return http.StatusConflict, "There is registered user with this email.", nil
+	user.Email = strings.ToLower(user.Email)
+	_, _, userFoud := user.findUser()
+	if userFoud != nil {
+		return http.StatusConflict, "Provided email or username is already registered.", nil
 	}
 	user.initialize()
 	_, err = firestoreClient.Collection("users").Doc(user.Username).Set(config.Context, user)
 	if err != nil {
 		return http.StatusInternalServerError, err.Error(), nil
 	}
-	user.HashedPassword = ""
 	return http.StatusCreated, "User created successfully.", user
 }
 
@@ -82,8 +70,8 @@ func (user *User) login() (int, string) {
 	return login.login()
 }
 
-func (user *User) findUser(username string) (int, string, *User) {
-	if username == "" {
+func (user *User) findUser() (int, string, *User) {
+	if user.Username == "" && user.Email == "" {
 		return http.StatusNotFound, "User not found.", nil
 	}
 	firestoreClient, err := libraries.FirebaseApp().Firestore(config.Context)
@@ -91,8 +79,18 @@ func (user *User) findUser(username string) (int, string, *User) {
 	if err != nil {
 		return http.StatusInternalServerError, err.Error(), nil
 	}
-	getUser, err := firestoreClient.Collection("users").Doc(username).Get(config.Context)
-	if !getUser.Exists() {
+	getUser, err := firestoreClient.Collection("users").Doc(user.Username).Get(config.Context)
+	if err != nil {
+		findEmail := firestoreClient.Collection("users").Where("Email", "==", user.Email).Documents(config.Context)
+		foundEmail, err := findEmail.GetAll()
+		if err != nil {
+			return http.StatusInternalServerError, err.Error(), nil
+		}
+		if len(foundEmail) > 0 {
+			foundEmail[0].DataTo(&user)
+			user.HashedPassword = ""
+			return http.StatusOK, "Get user successfully.", user
+		}
 		return http.StatusNotFound, "User not found.", nil
 	}
 	err = getUser.DataTo(&user)
@@ -103,7 +101,8 @@ func (user *User) findUser(username string) (int, string, *User) {
 	return http.StatusOK, "Get user successfully.", user
 }
 
-func (user *User) sendVerificationEmail() (int, string) {
+// SendVerificationEmail method for user model.
+func (user *User) SendVerificationEmail() (int, string) {
 	email := new(VerificationEmail)
 	email.Initialize(user.Username, user.Email)
 	firestoreClient, err := libraries.FirebaseApp().Firestore(config.Context)

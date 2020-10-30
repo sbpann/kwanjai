@@ -14,12 +14,13 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// Token object
+// Token object.
 type Token struct {
 	AccessToken  string `json:"access_token"`
 	RefreshToken string `json:"refresh_token"`
 }
 
+// Use for tracking token issue status.
 type tokenStatus struct {
 	AccessToken  bool
 	RefreshToken bool
@@ -31,6 +32,7 @@ type customClaims struct {
 	*jwt.StandardClaims
 }
 
+// getSecretKeyAndLifetime function returns secret key (string), token lifetime (time.Duration), error.
 func getSecretKeyAndLifetime(tokenType string) (string, time.Duration, error) {
 	if tokenType == "access" {
 		return config.JWTAccessTokenSecretKey, config.JWTAccessTokenLifetime, nil
@@ -42,10 +44,11 @@ func getSecretKeyAndLifetime(tokenType string) (string, time.Duration, error) {
 	}
 }
 
-func GetTokenPayload(tokenString string, tokenType string, field string) (string, error, bool) {
+// GetTokenPayload function returns payload value (string), token validiation status (bool), error.
+func GetTokenPayload(tokenString string, tokenType string, field string) (string, bool, error) {
 	secretKey, _, err := getSecretKeyAndLifetime(tokenType)
 	if err != nil {
-		return "", err, false
+		return "", false, err
 	}
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -54,14 +57,16 @@ func GetTokenPayload(tokenString string, tokenType string, field string) (string
 		return []byte(secretKey), nil
 	})
 	if err != nil {
-		return "", err, false
+		return "", false, err
 	}
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
-		return "", errors.New("claim failed"), false
+		return "", false, errors.New("claim failed")
 	}
-	return claims[field].(string), nil, token.Valid
+	return claims[field].(string), token.Valid, nil
 }
+
+// CreateToken returns token (string) and error.
 func CreateToken(tokenType string, username string) (string, error) {
 	secretKey, lifetime, err := getSecretKeyAndLifetime(tokenType)
 	var tokenUUID string
@@ -103,7 +108,7 @@ func CreateToken(tokenType string, username string) (string, error) {
 	return signedToken, err
 }
 
-// Initialize token
+// Initialize token method.
 func (token *Token) Initialize(username string) (int, string) {
 	var passed bool
 	tokenStatus := new(tokenStatus)
@@ -132,10 +137,10 @@ func (tokenStatus *tokenStatus) createToken(username string, tokenType string, t
 	}
 }
 
-// VerifyToken with a particular type.
+// VerifyToken function returns token validiation status (bool), username (string), token UUID (string), error.
 func VerifyToken(tokenString string, tokenType string) (bool, string, string, error) {
-	tokenUUID, err, valid := GetTokenPayload(tokenString, tokenType, "uuid")
-	username, err, _ := GetTokenPayload(tokenString, tokenType, "user")
+	tokenUUID, valid, err := GetTokenPayload(tokenString, tokenType, "uuid")
+	username, _, err := GetTokenPayload(tokenString, tokenType, "user")
 	firestoreClient, ferr := FirebaseApp().Firestore(config.Context)
 	defer firestoreClient.Close()
 	if ferr != nil {
@@ -169,7 +174,7 @@ func VerifyToken(tokenString string, tokenType string) (bool, string, string, er
 	return false, "anonymous", "", err
 }
 
-// DeleteToken by username and token uuid
+// DeleteToken by username and token uuid.
 func DeleteToken(username string, tokenUUID string) error {
 	firestoreClient, err := FirebaseApp().Firestore(config.Context)
 	defer firestoreClient.Close()

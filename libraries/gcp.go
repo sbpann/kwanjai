@@ -7,7 +7,7 @@ import (
 
 var isInitialzed bool = false
 
-// InitializeGCP from credential.json
+// InitializeGCP from credential.json.
 func InitializeGCP() {
 	if isInitialzed {
 		return

@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"kwanjai/config"
 	"kwanjai/controllers"
 	"kwanjai/libraries"
@@ -27,18 +26,23 @@ func main() {
 	config.JWTRefreshTokenSecretKey, err = libraries.AccessSecretVersion("projects/978676563951/secrets/JWTRefreshTokenSecretKey/versions/1")
 	config.JWTAccessTokenLifetime = time.Hour * 4
 	config.JWTRefreshTokenLifetime = time.Hour * 8
-	fmt.Println(config.JWTAccessTokenSecretKey, config.JWTRefreshTokenSecretKey)
 	if err != nil {
 		log.Fatalln(err)
 	}
+	// debugging area
+	// user := new(models.User)
+	// user.Username = "panithi.nakkhruea@pm.me"
+	// status, message, user := models.Finduser(user)
+	// fmt.Println(status, message, user)
+	// debugging area
 
 	r := gin.Default()
 	r.Use(config.DefaultAuthenticationBackend)
 	r.POST("/register", controllers.Register)
 	r.POST("/login", controllers.Login)
 	r.POST("/logout", controllers.Logout)
-	r.POST("/verify/:UUID", controllers.VerifyEmail)
+	r.POST("/verify_email/:UUID", controllers.VerifyEmail)
+	r.POST("/resend_verification_email", controllers.ResendVerifyEmail)
 	r.POST("/token/refresh", controllers.RefreshToken)
-	r.GET("/auth", controllers.AuthenticateTest)
 	r.Run()
 }

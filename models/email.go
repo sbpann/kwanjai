@@ -15,16 +15,16 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// VerificationEmail model
+// VerificationEmail model.
 type VerificationEmail struct {
 	User        string
-	Email       string
+	Email       string `json:"email"`
 	Key         string `json:"key"`
 	UUID        string
 	ExpiredDate string
 }
 
-// Initialize email
+// Initialize email objects.
 func (email *VerificationEmail) Initialize(user string, emailAddress string) {
 	random := rand.New(rand.NewSource(time.Now().UnixNano()))
 	email.User = user
@@ -34,25 +34,24 @@ func (email *VerificationEmail) Initialize(user string, emailAddress string) {
 	email.ExpiredDate = time.Now().Add(config.EmailVerficationLifetime).Format(time.RFC3339)
 }
 
-// smtpServer data to smtp server
+// smtpServer data.
 type smtpServer struct {
 	host string
 	port string
 }
 
-// Address URI to smtp server
-func (s *smtpServer) Address() string {
+func (s *smtpServer) address() string {
 	return s.host + ":" + s.port
 }
 
-// Send email
+// Send method for VerificationEmail object.
 func (email *VerificationEmail) Send() (int, string) {
 	// Sender data.
 	from := "surus.d6101@gmail.com"
 	password := config.EmailServicePassword
 	to := []string{email.Email}
 	smtpServer := smtpServer{host: "smtp.gmail.com", port: "587"}
-	verificationLink := fmt.Sprintf("%v/verify/%v/", config.FrontendURL, email.UUID)
+	verificationLink := fmt.Sprintf("%v/verify_email/%v/", config.FrontendURL, email.UUID)
 	message := fmt.Sprintf("To: %v\r\n"+
 		"Subject: verification email.\r\n"+
 		"\r\n"+
@@ -61,14 +60,16 @@ func (email *VerificationEmail) Send() (int, string) {
 		"%v\r\n"+
 		"Your verification code is: %v\r\n", to[0], email.User, verificationLink, email.Key)
 	auth := smtp.PlainAuth("", from, password, smtpServer.host)
-	err := smtp.SendMail(smtpServer.Address(), auth, from, to, []byte(message))
+	err := smtp.SendMail(smtpServer.address(), auth, from, to, []byte(message))
 	if err != nil {
 		return http.StatusInternalServerError, err.Error()
 	}
 	return http.StatusOK, "Email sent."
 }
 
-// Verify email
+// Verify method for VerificationEmail object.
+// The method set user to be verified if verification is completed.
+// If the email is expired, the method delete the email in database.
 func (email *VerificationEmail) Verify() (int, string) {
 	firestoreClient, err := libraries.FirebaseApp().Firestore(config.Context)
 	defer firestoreClient.Close()

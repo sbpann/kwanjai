@@ -8,7 +8,7 @@ import (
 	secretmanagerpb "google.golang.org/genproto/googleapis/cloud/secretmanager/v1"
 )
 
-// AccessSecretVersion for secret value
+// AccessSecretVersion function returns secret value (string) and error.
 func AccessSecretVersion(name string) (string, error) {
 	InitializeGCP()
 	client, err := secretmanager.NewClient(config.Context)

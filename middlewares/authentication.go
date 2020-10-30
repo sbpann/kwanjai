@@ -9,7 +9,9 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// JWTAuthorization middleware
+// JWTAuthorization middleware.
+// Base authentication which always stores user object in context.
+// If token verification failed, anonymous user object is stored.
 func JWTAuthorization() gin.HandlerFunc {
 	return func(ginContext *gin.Context) {
 		user := new(models.User)

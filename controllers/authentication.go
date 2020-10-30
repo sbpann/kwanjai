@@ -14,15 +14,14 @@ func Login(ginContext *gin.Context) {
 	login := new(models.LoginCredential)
 	err := ginContext.ShouldBindJSON(login)
 	var status int
-	var message string
 	if err != nil {
-		status, message = http.StatusBadRequest, "Login form is not valid."
-		ginContext.JSON(status, gin.H{"message": message})
+		ginContext.JSON(http.StatusBadRequest, gin.H{"message": "Login form is not valid."})
 		return
 	}
 	status, username := models.Login(login)
 	if status != http.StatusOK {
 		ginContext.JSON(status, gin.H{"message": username})
+		// If status != 200, error message is returned instead of username.
 		return
 	}
 	token := new(libraries.Token)
@@ -38,8 +37,7 @@ func Register(ginContext *gin.Context) {
 	var message string
 	var user *models.User
 	if err != nil {
-		status, message = http.StatusBadRequest, "Registration form is not valid."
-		ginContext.JSON(status, gin.H{"message": message})
+		ginContext.JSON(http.StatusBadRequest, gin.H{"message": "Registration form is not valid."})
 		return
 	}
 	registerInfo.HashPassword()
@@ -64,7 +62,6 @@ func Logout(ginContext *gin.Context) {
 	if !exist {
 		ginContext.JSON(http.StatusInternalServerError, gin.H{"message": "No user found in backend context."})
 	}
-	ginContext.JSON(http.StatusOK, gin.H{"user": user, "exist": exist})
 	var (
 		passed           bool
 		accessPassed     bool
@@ -95,7 +92,7 @@ func Logout(ginContext *gin.Context) {
 	go libraries.DeleteToken(user.(string), accessTokenUUID)
 	go libraries.DeleteToken(user.(string), refreshTokenUUID)
 
-	ginContext.JSON(200, gin.H{"message": "logout successfully"})
+	ginContext.JSON(200, gin.H{"message": "User logged out successfully."})
 }
 
 // RefreshToken endpiont
@@ -103,14 +100,9 @@ func RefreshToken(ginContext *gin.Context) {
 	token := new(libraries.Token)
 	ginContext.ShouldBind(&token)
 	token.AccessToken = ginContext.Request.Header.Get("Authorization")
-	_, user, _, err := libraries.VerifyToken(token.AccessToken, "access") // if token is expried here. it got delete.
-	if user != "anonymous" && err == nil {                                // which means token is still valid.
-		tokenUUID, err, _ := libraries.GetTokenPayload(token.AccessToken, "access", "uuid")
-		err = libraries.DeleteToken(user, tokenUUID)
-		if err != nil {
-			ginContext.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
-			return
-		}
+	if token.RefreshToken == "" {
+		ginContext.JSON(http.StatusBadRequest, gin.H{"message": "No refresh token provied."})
+		return
 	}
 	passed, user, _, err := libraries.VerifyToken(token.RefreshToken, "refresh")
 	if err != nil {
@@ -127,18 +119,18 @@ func RefreshToken(ginContext *gin.Context) {
 		ginContext.JSON(status, gin.H{"message": err.Error()})
 		return
 	}
+	_, user, tokenUUID, err := libraries.VerifyToken(token.AccessToken, "access") // if token is expried here. it got delete.
+	if user != "anonymous" && err == nil {                                        // which means token is still valid.
+		err = libraries.DeleteToken(user, tokenUUID)
+		if err != nil {
+			ginContext.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+			return
+		}
+	}
 	newToken, err := libraries.CreateToken("access", user)
 	token.AccessToken = newToken
 	ginContext.JSON(http.StatusOK, gin.H{
 		"user":  user,
 		"token": token,
 	})
-}
-
-func AuthenticateTest(ginContext *gin.Context) {
-	user, exist := ginContext.Get("user")
-	if !exist {
-		ginContext.JSON(http.StatusInternalServerError, gin.H{"message": "No user found in backend context."})
-	}
-	ginContext.JSON(http.StatusOK, gin.H{"user": user, "exist": exist})
 }
