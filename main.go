@@ -17,6 +17,7 @@ func main() {
 	var err error
 
 	config.BaseDirectory, err = os.Getwd()
+	libraries.InitializeGCP() // BaseDirectory need to be set before initialization.
 	config.Context = context.Background()
 	config.FrontendURL = "http://localhost:8080"
 	config.DefaultAuthenticationBackend = middlewares.JWTAuthorization()
