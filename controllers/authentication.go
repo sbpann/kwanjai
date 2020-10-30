@@ -9,7 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// Login function returns status of password validiation as booleans
+// Login endpoint
 func Login(ginContext *gin.Context) {
 	login := new(models.LoginCredential)
 	err := ginContext.ShouldBindJSON(login)
@@ -30,7 +30,7 @@ func Login(ginContext *gin.Context) {
 	ginContext.JSON(status, gin.H{"user": username, "token": token})
 }
 
-// Register new user
+// Register endpoint
 func Register(ginContext *gin.Context) {
 	registerInfo := new(models.User)
 	err := ginContext.ShouldBind(registerInfo)
@@ -67,21 +67,16 @@ func Logout(ginContext *gin.Context) {
 		user             string
 		accessTokenUUID  string
 		refreshTokenUUID string
-		err              error
 	)
 	logout := new(models.LogoutData)
 	token := new(libraries.Token)
-	err = ginContext.ShouldBind(&token)
+	ginContext.ShouldBind(&token)
 	token.AccessToken = ginContext.Request.Header.Get("Authorization")
-	if err != nil {
-		ginContext.JSON(http.StatusInternalServerError, gin.H{"message": "token verification failed."})
-		return
-	}
 	go logout.Verify(token.AccessToken, "access")
 	go logout.Verify(token.RefreshToken, "refresh")
 	timeout := time.Now().Add(time.Second * 4)
 	timer := time.Now()
-	for !passed && !timer.Equal(timeout) {
+	for !passed && timer.Before(timeout) {
 		accessPassed = logout.AccessPassed
 		refreshPassed = logout.RefreshPassed
 		user = logout.User
@@ -94,12 +89,46 @@ func Logout(ginContext *gin.Context) {
 		ginContext.JSON(http.StatusUnauthorized, gin.H{"message": "token verification failed."})
 		return
 	}
-	if passed {
-		go libraries.DeleteToken(user, accessTokenUUID)
-		go libraries.DeleteToken(user, refreshTokenUUID)
-	}
+	go libraries.DeleteToken(user, accessTokenUUID)
+	go libraries.DeleteToken(user, refreshTokenUUID)
 
 	ginContext.JSON(200, gin.H{"message": "logout successfully"})
+}
+
+func RefreshToken(ginContext *gin.Context) {
+	token := new(libraries.Token)
+	ginContext.ShouldBind(&token)
+	token.AccessToken = ginContext.Request.Header.Get("Authorization")
+	_, user, _, err := libraries.VerifyToken(token.AccessToken, "access") // if token is expried here. it got delete.
+	if user != "anonymous" && err == nil {                                // which means token is still valid.
+		tokenUUID, err, _ := libraries.GetTokenPayload(token.AccessToken, "access", "uuid")
+		err = libraries.DeleteToken(user, tokenUUID)
+		if err != nil {
+			ginContext.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+			return
+		}
+	}
+	passed, user, _, err := libraries.VerifyToken(token.RefreshToken, "refresh")
+	if err != nil {
+		ginContext.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
+	}
+	if !passed && user != "anonymous" {
+		var status int
+		if err.Error() == "user not found" {
+			status = http.StatusNotFound
+		} else {
+			status = http.StatusInternalServerError
+		}
+		ginContext.JSON(status, gin.H{"message": err.Error()})
+		return
+	}
+	newToken, err := libraries.CreateToken("access", user)
+	token.AccessToken = newToken
+	ginContext.JSON(http.StatusOK, gin.H{
+		"user":  user,
+		"token": token,
+	})
 }
 
 func AuthenticateTest(ginContext *gin.Context) {

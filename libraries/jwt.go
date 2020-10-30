@@ -42,7 +42,27 @@ func getSecretKeyAndLifetime(tokenType string) (string, time.Duration, error) {
 	}
 }
 
-func createToken(tokenType string, username string) (string, error) {
+func GetTokenPayload(tokenString string, tokenType string, field string) (string, error, bool) {
+	secretKey, _, err := getSecretKeyAndLifetime(tokenType)
+	if err != nil {
+		return "", err, false
+	}
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
+		}
+		return []byte(secretKey), nil
+	})
+	if err != nil {
+		return "", err, false
+	}
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return "", errors.New("claim failed"), false
+	}
+	return claims[field].(string), nil, token.Valid
+}
+func CreateToken(tokenType string, username string) (string, error) {
 	secretKey, lifetime, err := getSecretKeyAndLifetime(tokenType)
 	var tokenUUID string
 	if err != nil {
@@ -91,7 +111,7 @@ func (token *Token) Initialize(username string) (int, string) {
 	go tokenStatus.createToken(username, "refresh", token)
 	timeout := time.Now().Add(time.Second * 4)
 	timer := time.Now()
-	for !passed && !timer.Equal(timeout) {
+	for !passed && timer.Before(timeout) {
 		passed = tokenStatus.AccessToken == true && tokenStatus.RefreshToken == true
 		timer = time.Now()
 	}
@@ -104,34 +124,18 @@ func (token *Token) Initialize(username string) (int, string) {
 func (tokenStatus *tokenStatus) createToken(username string, tokenType string, token *Token) {
 	var err error
 	if tokenType == "access" {
-		token.AccessToken, err = createToken("access", username)
+		token.AccessToken, err = CreateToken("access", username)
 		tokenStatus.AccessToken = err == nil
 	} else if tokenType == "refresh" {
-		token.RefreshToken, err = createToken("refresh", username)
+		token.RefreshToken, err = CreateToken("refresh", username)
 		tokenStatus.RefreshToken = err == nil
 	}
 }
 
 // VerifyToken with a particular type.
 func VerifyToken(tokenString string, tokenType string) (bool, string, string, error) {
-	secretKey, _, err := getSecretKeyAndLifetime(tokenType)
-	if err != nil {
-		return false, "", "", err
-	}
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
-		}
-		return []byte(secretKey), nil
-	})
-	if err != nil {
-		return false, "anonymous", "", err
-	}
-	claims, ok := token.Claims.(jwt.MapClaims)
-	if !ok {
-		return false, "anonymous", "", errors.New("claim failed")
-	}
-	tokenUUID, username := claims["uuid"].(string), claims["user"].(string)
+	tokenUUID, err, valid := GetTokenPayload(tokenString, tokenType, "uuid")
+	username, err, _ := GetTokenPayload(tokenString, tokenType, "user")
 	firestoreClient, ferr := FirebaseApp().Firestore(config.Context)
 	defer firestoreClient.Close()
 	if ferr != nil {
@@ -139,10 +143,12 @@ func VerifyToken(tokenString string, tokenType string) (bool, string, string, er
 	}
 	uuidVerification, ferr := firestoreClient.Collection("tokenUUID").Doc(username).Get(config.Context)
 	if ferr != nil {
-		tokenPath := uuidVerification.Ref.Path
-		tokenNotExist := status.Errorf(codes.NotFound, "%q not found", tokenPath)
-		if ferr.Error() == tokenNotExist.Error() {
-			return false, "", "", errors.New("user not found")
+		if uuidVerification != nil {
+			tokenPath := uuidVerification.Ref.Path
+			tokenNotExist := status.Errorf(codes.NotFound, "%q not found", tokenPath)
+			if ferr.Error() == tokenNotExist.Error() {
+				return false, "", "", errors.New("token not found")
+			}
 		}
 		return false, "", "", ferr
 	}
@@ -157,7 +163,7 @@ func VerifyToken(tokenString string, tokenType string) (bool, string, string, er
 			}
 		}
 	}
-	if ok && token.Valid {
+	if valid {
 		return true, username, tokenUUID, nil
 	}
 	return false, "anonymous", "", err

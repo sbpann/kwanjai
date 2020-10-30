@@ -1,7 +1,6 @@
 package models
 
 import (
-	"fmt"
 	"kwanjai/config"
 	"kwanjai/libraries"
 	"net/http"
@@ -36,14 +35,6 @@ type authenticationPerform interface {
 // Login user
 func Login(perform authenticationPerform) (int, string) {
 	return perform.login()
-}
-
-func GetUserSession(username string) (int, string) {
-	firestoreClient, err := libraries.FirebaseApp().Firestore(config.Context)
-	defer firestoreClient.Close()
-	uuidVerification, err := firestoreClient.Collection("tokenUUID").Doc(username).Get(config.Context)
-	fmt.Println(uuidVerification.Data(), err)
-	return http.StatusOK, "get user successfully"
 }
 
 // Verify logout credential

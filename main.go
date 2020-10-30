@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"kwanjai/config"
 	"kwanjai/controllers"
 	"kwanjai/libraries"
@@ -17,13 +18,14 @@ func main() {
 
 	config.BaseDirectory, err = os.Getwd()
 	config.Context = context.Background()
-	config.FrontendURL = "http://localhost:8000"
+	config.FrontendURL = "http://localhost:8080"
 	config.EmailServicePassword, err = libraries.AccessSecretVersion("projects/978676563951/secrets/EmailServicePassword/versions/1")
 	config.EmailVerficationLifetime = time.Hour * 24 * 7
-	config.JWTAccessTokenSecretKey = "access"
-	config.JWTRefreshTokenSecretKey = "refresh"
+	config.JWTAccessTokenSecretKey, err = libraries.AccessSecretVersion("projects/978676563951/secrets/JWTAccessTokenSecretKey/versions/1")
+	config.JWTRefreshTokenSecretKey, err = libraries.AccessSecretVersion("projects/978676563951/secrets/JWTRefreshTokenSecretKey/versions/1")
 	config.JWTAccessTokenLifetime = time.Hour * 4
 	config.JWTRefreshTokenLifetime = time.Hour * 8
+	fmt.Println(config.JWTAccessTokenSecretKey, config.JWTRefreshTokenSecretKey)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -33,6 +35,7 @@ func main() {
 	r.POST("/login", controllers.Login)
 	r.POST("/logout", controllers.Logout)
 	r.POST("/verify/:UUID", controllers.VerifyEmail)
+	r.POST("/token/refresh", controllers.RefreshToken)
 	r.GET("/auth", controllers.AuthenticateTest)
 	r.Run() // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
 }
