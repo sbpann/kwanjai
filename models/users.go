@@ -36,17 +36,17 @@ func Register(perform userPerform) (int, string, *User) {
 	if status != http.StatusCreated || user == nil {
 		return status, message, user
 	}
-	// status, message = perform.sendVerificationEmail()
+	status, message = user.sendVerificationEmail()
 	return status, message, user
 }
 
 func (user *User) createUser() (int, string, *User) {
 	firestoreClient, err := libraries.FirebaseApp().Firestore(config.Context)
 	defer firestoreClient.Close()
-	user.Username = strings.ToLower(user.Username)
 	if err != nil {
 		return http.StatusInternalServerError, err.Error(), nil
 	}
+	user.Username = strings.ToLower(user.Username)
 	getUser, err := firestoreClient.Collection("users").Doc(user.Username).Get(config.Context)
 	if err != nil {
 		userPath := getUser.Ref.Path
@@ -111,7 +111,7 @@ func (user *User) sendVerificationEmail() (int, string) {
 	if err != nil {
 		return http.StatusInternalServerError, err.Error()
 	}
-	_, err = firestoreClient.Collection("verificationemail").Doc(email.User).Set(config.Context, email)
+	_, err = firestoreClient.Collection("verificationemail").Doc(email.UUID).Set(config.Context, email)
 	if err != nil {
 		return http.StatusInternalServerError, err.Error()
 	}

@@ -41,6 +41,7 @@ func getSecretKeyAndLifetime(tokenType string) (string, time.Duration, error) {
 		return "", time.Second, err
 	}
 }
+
 func createToken(tokenType string, username string) (string, error) {
 	secretKey, lifetime, err := getSecretKeyAndLifetime(tokenType)
 	var tokenUUID string
@@ -88,7 +89,7 @@ func (token *Token) Initialize(username string) (int, string) {
 	tokenStatus := new(tokenStatus)
 	go tokenStatus.createToken(username, "access", token)
 	go tokenStatus.createToken(username, "refresh", token)
-	timeout := time.Now().Add(time.Second * 10)
+	timeout := time.Now().Add(time.Second * 4)
 	timer := time.Now()
 	for !passed && !timer.Equal(timeout) {
 		passed = tokenStatus.AccessToken == true && tokenStatus.RefreshToken == true

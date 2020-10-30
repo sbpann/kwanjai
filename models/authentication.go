@@ -18,15 +18,15 @@ type LoginCredential struct {
 	Password string `json:"password" binding:"required"`
 }
 
+// LogoutData to track logout process event
 type LogoutData struct {
-	RefreshPass      bool
-	AccessPass       bool
+	RefreshPassed    bool
+	AccessPassed     bool
 	User             string
 	AccessTokenUUID  string
 	RefreshTokenUUID string
 	AccessDeleted    bool
 	RefreshDeleted   bool
-	Err              error
 }
 
 type authenticationPerform interface {
@@ -46,11 +46,12 @@ func GetUserSession(username string) (int, string) {
 	return http.StatusOK, "get user successfully"
 }
 
+// Verify logout credential
 func (logout *LogoutData) Verify(tokenString string, tokenType string) {
 	if tokenType == "access" {
-		logout.AccessPass, logout.User, logout.AccessTokenUUID, logout.Err = libraries.VerifyToken(tokenString, "access")
+		logout.AccessPassed, logout.User, logout.AccessTokenUUID, _ = libraries.VerifyToken(tokenString, "access")
 	} else if tokenType == "refresh" {
-		logout.RefreshPass, logout.User, logout.RefreshTokenUUID, logout.Err = libraries.VerifyToken(tokenString, "refresh")
+		logout.RefreshPassed, logout.User, logout.RefreshTokenUUID, _ = libraries.VerifyToken(tokenString, "refresh")
 	} else {
 		return
 	}

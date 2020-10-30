@@ -44,7 +44,7 @@ func Register(ginContext *gin.Context) {
 	}
 	registerInfo.HashPassword()
 	status, message, user = models.Register(registerInfo)
-	if status != http.StatusCreated {
+	if status != http.StatusOK {
 		ginContext.JSON(status, gin.H{"message": message})
 		return
 	}
@@ -58,11 +58,12 @@ func Register(ginContext *gin.Context) {
 
 }
 
+// Logout endpoint
 func Logout(ginContext *gin.Context) {
 	var (
-		pass             bool
-		accessPass       bool
-		refreshPass      bool
+		passed           bool
+		accessPassed     bool
+		refreshPassed    bool
 		user             string
 		accessTokenUUID  string
 		refreshTokenUUID string
@@ -72,39 +73,28 @@ func Logout(ginContext *gin.Context) {
 	token := new(libraries.Token)
 	err = ginContext.ShouldBind(&token)
 	token.AccessToken = ginContext.Request.Header.Get("Authorization")
+	if err != nil {
+		ginContext.JSON(http.StatusInternalServerError, gin.H{"message": "token verification failed."})
+		return
+	}
 	go logout.Verify(token.AccessToken, "access")
 	go logout.Verify(token.RefreshToken, "refresh")
-	timeout := time.Now().Add(time.Second * 10)
+	timeout := time.Now().Add(time.Second * 4)
 	timer := time.Now()
-	for !pass && !timer.Equal(timeout) {
-		accessPass = logout.AccessPass
-		refreshPass = logout.RefreshPass
+	for !passed && !timer.Equal(timeout) {
+		accessPassed = logout.AccessPassed
+		refreshPassed = logout.RefreshPassed
 		user = logout.User
 		accessTokenUUID = logout.AccessTokenUUID
 		refreshTokenUUID = logout.RefreshTokenUUID
-		err = logout.Err
-		pass = accessPass == true && refreshPass == true
+		passed = accessPassed == true && refreshPassed == true
 		timer = time.Now()
 	}
-	if !pass {
+	if !passed {
 		ginContext.JSON(http.StatusUnauthorized, gin.H{"message": "token verification failed."})
 		return
 	}
-	if !pass && user != "anonymous" {
-		var status int
-		if err.Error() == "user not found" {
-			status = http.StatusNotFound
-		} else {
-			status = http.StatusInternalServerError
-		}
-		ginContext.JSON(status, gin.H{"message": err.Error()})
-		return
-	} else if !pass && user == "anonymous" {
-		ginContext.JSON(200, gin.H{"message": err.Error()})
-		return
-	}
-
-	if pass {
+	if passed {
 		go libraries.DeleteToken(user, accessTokenUUID)
 		go libraries.DeleteToken(user, refreshTokenUUID)
 	}
@@ -113,8 +103,8 @@ func Logout(ginContext *gin.Context) {
 }
 
 func AuthenticateTest(ginContext *gin.Context) {
-	pass, user, _, err := libraries.VerifyToken(ginContext.Request.Header.Get("Authorization"), "access")
-	if !pass && user != "anonymous" {
+	passed, user, _, err := libraries.VerifyToken(ginContext.Request.Header.Get("Authorization"), "access")
+	if !passed && user != "anonymous" {
 		var status int
 		if err.Error() == "user not found" {
 			status = http.StatusNotFound
@@ -124,5 +114,5 @@ func AuthenticateTest(ginContext *gin.Context) {
 		ginContext.JSON(status, gin.H{"message": err.Error()})
 		return
 	}
-	ginContext.JSON(200, gin.H{"pass": pass, "user": user})
+	ginContext.JSON(200, gin.H{"passed": passed, "user": user})
 }
