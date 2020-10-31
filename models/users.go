@@ -60,6 +60,7 @@ func (user *User) createUser() (int, string, *User) {
 	if err != nil {
 		return http.StatusInternalServerError, err.Error(), nil
 	}
+	user.HashedPassword = ""
 	return http.StatusCreated, "User created successfully.", user
 }
 

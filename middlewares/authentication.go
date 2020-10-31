@@ -22,7 +22,6 @@ func JWTAuthorization() gin.HandlerFunc {
 			}
 			user.MakeAnonymous()
 			ginContext.Set("user", user)
-			ginContext.Next()
 			return
 		}
 		firestoreClient, err := libraries.FirebaseApp().Firestore(config.Context)
@@ -34,6 +33,5 @@ func JWTAuthorization() gin.HandlerFunc {
 		}
 		getUser.DataTo(&user)
 		ginContext.Set("user", user)
-		ginContext.Next()
 	}
 }

@@ -13,9 +13,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func main() {
+func setupServer() {
 	var err error
-
+	if os.Getenv("GIN_MODE") == "" {
+		os.Setenv("GIN_MODE", "default")
+	}
 	config.BaseDirectory, err = os.Getwd()
 	libraries.InitializeGCP() // BaseDirectory need to be set before initialization.
 	config.Context = context.Background()
@@ -31,20 +33,31 @@ func main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	// debugging area
-	// user := new(models.User)
-	// user.Username = "panithi.nakkhruea@pm.me"
-	// status, message, user := models.Finduser(user)
-	// fmt.Println(status, message, user)
-	// debugging area
+}
 
-	r := gin.Default()
-	r.Use(config.DefaultAuthenticationBackend)
-	r.POST("/register", controllers.Register)
-	r.POST("/login", controllers.Login)
-	r.POST("/logout", controllers.Logout)
-	r.POST("/verify_email/:UUID", controllers.VerifyEmail)
-	r.POST("/resend_verification_email", controllers.ResendVerifyEmail)
-	r.POST("/token/refresh", controllers.RefreshToken)
-	r.Run()
+func getServer(mode string) *gin.Engine {
+	if mode == "default" {
+		log.Println("running in default mode.")
+	} else if mode == "test" {
+		gin.SetMode(gin.TestMode)
+		log.Println("running in test mode.")
+	} else if mode == "release" {
+		gin.SetMode(gin.ReleaseMode)
+		log.Println("running in test mode.")
+	}
+	ginEngine := gin.Default()
+	ginEngine.Use(config.DefaultAuthenticationBackend)
+	ginEngine.POST("/login", controllers.Login())
+	ginEngine.POST("/register", controllers.Register())
+	ginEngine.POST("/logout", controllers.Logout())
+	ginEngine.POST("/verify_email/:UUID", controllers.VerifyEmail())
+	ginEngine.POST("/resend_verification_email", controllers.ResendVerifyEmail())
+	ginEngine.POST("/token/refresh", controllers.RefreshToken())
+	return ginEngine
+}
+
+func main() {
+	setupServer()
+	ginEngine := getServer(os.Getenv("GIN_MODE"))
+	ginEngine.Run()
 }
