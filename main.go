@@ -49,7 +49,7 @@ func getServer(mode string) *gin.Engine {
 	ginEngine.Use(config.DefaultAuthenticationBackend)
 	ginEngine.POST("/login", controllers.Login())
 	ginEngine.POST("/register", controllers.Register())
-	ginEngine.POST("/logout", controllers.Logout())
+	ginEngine.POST("/logout", middlewares.AuthenticatedOnly(), controllers.Logout())
 	ginEngine.POST("/verify_email/:UUID", controllers.VerifyEmail())
 	ginEngine.POST("/resend_verification_email", controllers.ResendVerifyEmail())
 	ginEngine.POST("/token/refresh", controllers.RefreshToken())

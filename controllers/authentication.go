@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"kwanjai/helpers"
 	"kwanjai/libraries"
 	"kwanjai/models"
 	"net/http"
@@ -74,10 +75,6 @@ func Register() gin.HandlerFunc {
 // Logout endpoint
 func Logout() gin.HandlerFunc {
 	return func(ginContext *gin.Context) {
-		user, exist := ginContext.Get("user")
-		if !exist {
-			ginContext.JSON(http.StatusInternalServerError, gin.H{"message": "No user found in backend context."})
-		}
 		var (
 			passed           bool
 			accessPassed     bool
@@ -89,6 +86,10 @@ func Logout() gin.HandlerFunc {
 		token := new(libraries.Token)
 		ginContext.ShouldBind(token)
 		token.AccessToken = ginContext.Request.Header.Get("Authorization")
+		if token.RefreshToken == "" {
+			ginContext.JSON(http.StatusBadRequest, gin.H{"message": "No refresh token provied."})
+			return
+		}
 		go logout.Verify(token.AccessToken, "access")
 		go logout.Verify(token.RefreshToken, "refresh")
 		timeout := time.Now().Add(time.Second * 4)
@@ -102,11 +103,11 @@ func Logout() gin.HandlerFunc {
 			timer = time.Now()
 		}
 		if !passed {
-			ginContext.JSON(http.StatusUnauthorized, gin.H{"message": "token verification failed."})
+			ginContext.JSON(http.StatusUnauthorized, gin.H{"message": "Token verification failed."})
 			return
 		}
-		go libraries.DeleteToken(user.(string), accessTokenUUID)
-		go libraries.DeleteToken(user.(string), refreshTokenUUID)
+		go libraries.DeleteToken(helpers.GetUsername(ginContext), accessTokenUUID)
+		go libraries.DeleteToken(helpers.GetUsername(ginContext), refreshTokenUUID)
 
 		ginContext.JSON(200, gin.H{"message": "User logged out successfully."})
 	}
