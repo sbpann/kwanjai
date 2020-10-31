@@ -35,6 +35,8 @@ func Login() gin.HandlerFunc {
 func Register() gin.HandlerFunc {
 	return func(ginContext *gin.Context) {
 		registerInfo := new(models.User)
+		// Keep in mind.
+		// if content type is not provided ShouldBind is ShouldBindForm.
 		err := ginContext.ShouldBind(registerInfo)
 		var status int
 		var message string
