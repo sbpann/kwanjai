@@ -119,7 +119,7 @@ func TestUnauthorizedBoardAction(t *testing.T) {
 	b, _ := json.Marshal(board)
 	endpoints := map[string]string{
 		"/board/new":    "POST",
-		"/board/find":   "GET",
+		"/board/find":   "POST",
 		"/board/update": "PATCH",
 		"/board/delete": "DELETE",
 	}
