@@ -57,7 +57,7 @@ func getServer(mode string) *gin.Engine {
 	board.Use(middlewares.AuthenticatedOnly())
 	{
 		board.POST("/new", controllers.NewBoard())
-		board.GET("/find", controllers.FindBoard())
+		board.POST("/find", controllers.FindBoard())
 		board.PATCH("/update", controllers.UpdateBoard())
 		board.DELETE("/delete", controllers.DeleteBoard())
 	}
