@@ -2,7 +2,6 @@ FROM golang:alpine
 ENV GOOS=linux
 ENV GOARCH=amd64
 ENV CGO_ENABLED=0
-ENV GIN_MODE=release
 WORKDIR /go/src/github.com/pistex/kwanjai
 RUN apk update && apk add --no-cache git
 COPY . .
