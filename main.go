@@ -16,7 +16,7 @@ import (
 func setupServer() {
 	var err error
 	if os.Getenv("GIN_MODE") == "" {
-		os.Setenv("GIN_MODE", "default")
+		os.Setenv("GIN_MODE", "debug")
 	}
 	config.BaseDirectory, err = os.Getwd()
 	libraries.InitializeGCP() // BaseDirectory need to be set before initialization.
@@ -36,14 +36,14 @@ func setupServer() {
 }
 
 func getServer(mode string) *gin.Engine {
-	if mode == "default" {
-		log.Println("running in default mode.")
+	if mode == "debug" {
+		log.Println("running in debug mode.")
 	} else if mode == "test" {
 		gin.SetMode(gin.TestMode)
 		log.Println("running in test mode.")
 	} else if mode == "release" {
 		gin.SetMode(gin.ReleaseMode)
-		log.Println("running in test mode.")
+		log.Println("running in production mode.")
 	}
 	ginEngine := gin.Default()
 	ginEngine.Use(config.DefaultAuthenticationBackend)

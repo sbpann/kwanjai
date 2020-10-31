@@ -37,7 +37,7 @@ func Register() gin.HandlerFunc {
 		registerInfo := new(models.User)
 		// Keep in mind.
 		// if content type is not provided ShouldBind is ShouldBindForm.
-		err := ginContext.ShouldBind(registerInfo)
+		err := ginContext.ShouldBindJSON(&registerInfo)
 		var status int
 		var message string
 		var user *models.User
@@ -53,6 +53,15 @@ func Register() gin.HandlerFunc {
 		}
 		token := new(libraries.Token)
 		token.Initialize(user.Username)
+		if registerInfo.Username == "test" || registerInfo.Email == "test@example.com" {
+			ginContext.JSON(status, gin.H{
+				"message": message,
+				"user":    user,
+				"token":   token,
+				"warning": "You have just registered with the username (test) or the email (test@example.com) which is going to be delete eventually. Please avoid using those names.",
+			})
+			return
+		}
 		ginContext.JSON(status, gin.H{
 			"message": message,
 			"user":    user,
