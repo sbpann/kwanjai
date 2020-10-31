@@ -2,9 +2,10 @@ package middlewares
 
 import (
 	"kwanjai/config"
+	"kwanjai/helpers"
 	"kwanjai/libraries"
 	"kwanjai/models"
-	"log"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
@@ -17,9 +18,6 @@ func JWTAuthorization() gin.HandlerFunc {
 		user := new(models.User)
 		passed, username, _, err := libraries.VerifyToken(ginContext.Request.Header.Get("Authorization"), "access")
 		if !passed {
-			if err != nil {
-				log.Println(err.Error())
-			}
 			user.MakeAnonymous()
 			ginContext.Set("user", user)
 			return
@@ -33,5 +31,15 @@ func JWTAuthorization() gin.HandlerFunc {
 		}
 		getUser.DataTo(&user)
 		ginContext.Set("user", user)
+	}
+}
+
+// AuthenticatedOnly disallows "anonymous" user.
+func AuthenticatedOnly() gin.HandlerFunc {
+	return func(ginContext *gin.Context) {
+		username := helpers.GetUsername(ginContext)
+		if username == "anonymous" {
+			ginContext.AbortWithStatus(http.StatusUnauthorized)
+		}
 	}
 }

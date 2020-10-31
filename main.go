@@ -53,10 +53,14 @@ func getServer(mode string) *gin.Engine {
 	ginEngine.POST("/verify_email/:UUID", controllers.VerifyEmail())
 	ginEngine.POST("/resend_verification_email", controllers.ResendVerifyEmail())
 	ginEngine.POST("/token/refresh", controllers.RefreshToken())
-	ginEngine.POST("/board/new", controllers.NewBoard())
-	ginEngine.GET("/board/find", controllers.FindBoard())
-	ginEngine.PATCH("/board/update", controllers.UpdateBoard())
-	ginEngine.DELETE("/board/delete", controllers.DeleteBoard())
+	board := ginEngine.Group("/board")
+	board.Use(middlewares.AuthenticatedOnly())
+	{
+		board.POST("/new", controllers.NewBoard())
+		board.GET("/find", controllers.FindBoard())
+		board.PATCH("/update", controllers.UpdateBoard())
+		board.DELETE("/delete", controllers.DeleteBoard())
+	}
 	return ginEngine
 }
 

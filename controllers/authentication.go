@@ -37,7 +37,7 @@ func Register() gin.HandlerFunc {
 		registerInfo := new(models.User)
 		// Keep in mind.
 		// if content type is not provided ShouldBind is ShouldBindForm.
-		err := ginContext.ShouldBindJSON(&registerInfo)
+		err := ginContext.ShouldBindJSON(registerInfo)
 		var status int
 		var message string
 		var user *models.User
@@ -87,7 +87,7 @@ func Logout() gin.HandlerFunc {
 		)
 		logout := new(models.LogoutData)
 		token := new(libraries.Token)
-		ginContext.ShouldBind(&token)
+		ginContext.ShouldBind(token)
 		token.AccessToken = ginContext.Request.Header.Get("Authorization")
 		go logout.Verify(token.AccessToken, "access")
 		go logout.Verify(token.RefreshToken, "refresh")
@@ -116,7 +116,7 @@ func Logout() gin.HandlerFunc {
 func RefreshToken() gin.HandlerFunc {
 	return func(ginContext *gin.Context) {
 		token := new(libraries.Token)
-		ginContext.ShouldBind(&token)
+		ginContext.ShouldBind(token)
 		token.AccessToken = ginContext.Request.Header.Get("Authorization")
 		if token.RefreshToken == "" {
 			ginContext.JSON(http.StatusBadRequest, gin.H{"message": "No refresh token provied."})

@@ -79,11 +79,11 @@ func (email *VerificationEmail) Verify() (int, string) {
 			emailPath := getEmail.Ref.Path
 			emailNotExist := status.Errorf(codes.NotFound, "%q not found", emailPath)
 			if err.Error() == emailNotExist.Error() {
-				return http.StatusBadRequest, "bad verification link."
+				return http.StatusBadRequest, "Bad verification link."
 			}
 			return http.StatusInternalServerError, err.Error()
 		}
-		return http.StatusBadRequest, "bad verification link."
+		return http.StatusBadRequest, "Bad verification link."
 	}
 	verificationEmail := new(VerificationEmail)
 	err = getEmail.DataTo(&verificationEmail)

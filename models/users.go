@@ -10,11 +10,11 @@ import (
 
 // User model.
 type User struct {
-	Username       string `form:"username" json:"username" binding:"required,ne=anonymous"`
-	Email          string `form:"email" json:"email" binding:"required,email"`
-	Firstname      string `form:"firstname" json:"firstname"`
-	Lastname       string `form:"lastname" json:"lastname"`
-	Password       string `form:"password" json:"password" binding:"required,min=8"`
+	Username       string `json:"username" binding:"required,ne=anonymous"`
+	Email          string `json:"email" binding:"required,email"`
+	Firstname      string `json:"firstname"`
+	Lastname       string `json:"lastname"`
+	Password       string `json:"password" binding:"required,min=8"`
 	HashedPassword string `json:",omitempty"`
 	IsSuperUser    bool   `json:"is_superuser"`
 	IsVerified     bool   `json:"is_verified"`

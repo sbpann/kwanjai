@@ -12,12 +12,8 @@ import (
 func NewBoard() gin.HandlerFunc {
 	return func(ginContext *gin.Context) {
 		username := helpers.GetUsername(ginContext)
-		if username == "anonymous" {
-			ginContext.JSON(http.StatusUnauthorized, gin.H{"message": "Authenticated user only."})
-			return
-		}
 		board := new(models.Board)
-		err := ginContext.ShouldBindJSON(&board)
+		err := ginContext.ShouldBindJSON(board)
 		board.User = username
 		if err != nil {
 			ginContext.JSON(http.StatusBadRequest, gin.H{"message": "Board name is required."})
@@ -35,13 +31,8 @@ func NewBoard() gin.HandlerFunc {
 // FindBoard endpoint
 func FindBoard() gin.HandlerFunc {
 	return func(ginContext *gin.Context) {
-		username := helpers.GetUsername(ginContext)
-		if username == "anonymous" {
-			ginContext.JSON(http.StatusUnauthorized, gin.H{"message": "Authenticated user only."})
-			return
-		}
 		board := new(models.Board)
-		ginContext.ShouldBindJSON(&board)
+		ginContext.ShouldBindJSON(board)
 		if board.UUID == "" {
 			ginContext.JSON(http.StatusBadRequest, gin.H{"message": "Invalid UUID."})
 			return
@@ -59,12 +50,8 @@ func FindBoard() gin.HandlerFunc {
 func UpdateBoard() gin.HandlerFunc {
 	return func(ginContext *gin.Context) {
 		username := helpers.GetUsername(ginContext)
-		if username == "anonymous" {
-			ginContext.JSON(http.StatusUnauthorized, gin.H{"message": "Authenticated user only."})
-			return
-		}
 		board := new(models.Board)
-		ginContext.ShouldBindJSON(&board)
+		ginContext.ShouldBindJSON(board)
 		if board.UUID == "" {
 			ginContext.JSON(http.StatusBadRequest, gin.H{"message": "Invalid UUID."})
 			return
@@ -97,12 +84,8 @@ func UpdateBoard() gin.HandlerFunc {
 func DeleteBoard() gin.HandlerFunc {
 	return func(ginContext *gin.Context) {
 		username := helpers.GetUsername(ginContext)
-		if username == "anonymous" {
-			ginContext.JSON(http.StatusUnauthorized, gin.H{"message": "Authenticated user only."})
-			return
-		}
 		board := new(models.Board)
-		ginContext.ShouldBindJSON(&board)
+		ginContext.ShouldBindJSON(board)
 		if board.UUID == "" {
 			ginContext.JSON(http.StatusBadRequest, gin.H{"message": "Invalid UUID."})
 			return

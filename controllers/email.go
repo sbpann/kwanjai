@@ -11,7 +11,7 @@ import (
 func VerifyEmail() gin.HandlerFunc {
 	return func(ginContext *gin.Context) {
 		verificationEmail := new(models.VerificationEmail)
-		ginContext.ShouldBind(&verificationEmail)
+		ginContext.ShouldBind(verificationEmail)
 		verificationEmail.UUID = ginContext.Param("UUID")
 		status, message := verificationEmail.Verify()
 		ginContext.JSON(status, gin.H{"message": message})
@@ -22,7 +22,7 @@ func VerifyEmail() gin.HandlerFunc {
 func ResendVerifyEmail() gin.HandlerFunc {
 	return func(ginContext *gin.Context) {
 		verificationEmail := new(models.VerificationEmail)
-		ginContext.ShouldBind(&verificationEmail)
+		ginContext.ShouldBind(verificationEmail)
 		user := new(models.User)
 		user.Email = verificationEmail.Email
 		status, message, user := models.Finduser(user)
