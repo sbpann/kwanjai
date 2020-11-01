@@ -32,7 +32,7 @@ func Register(perform userPerform) (int, string, *User) {
 	if status != http.StatusCreated || user == nil {
 		return status, message, user
 	}
-	if user.Email == "test@example.com" {
+	if user.Email == "test1@example.com" || user.Email == "test2@example.com" {
 		return http.StatusOK, "Created account successfully.", user
 	}
 	status, message = user.SendVerificationEmail()
@@ -56,13 +56,13 @@ func (user *User) findUser() (int, string, *User) {
 			return http.StatusInternalServerError, err.Error(), nil
 		}
 		if len(getEmail) > 0 {
-			getEmail[0].DataTo(&user)
+			getEmail[0].DataTo(user)
 			user.HashedPassword = ""
 			return http.StatusOK, "Get user successfully.", user
 		}
 		return http.StatusNotFound, "User not found.", nil
 	}
-	err = getUser.DataTo(&user)
+	err = getUser.DataTo(user)
 	if err != nil {
 		return http.StatusInternalServerError, err.Error(), nil
 	}

@@ -86,7 +86,7 @@ func (email *VerificationEmail) Verify() (int, string) {
 		return http.StatusBadRequest, "Bad verification link."
 	}
 	verificationEmail := new(VerificationEmail)
-	err = getEmail.DataTo(&verificationEmail)
+	err = getEmail.DataTo(verificationEmail)
 	now := time.Now()
 	expriredDate := verificationEmail.ExpiredDate
 	exprired := now.After(expriredDate)

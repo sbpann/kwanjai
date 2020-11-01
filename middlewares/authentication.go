@@ -26,7 +26,7 @@ func JWTAuthorization() gin.HandlerFunc {
 			ginContext.AbortWithStatus(500)
 			return
 		}
-		getUser.DataTo(&user)
+		getUser.DataTo(user)
 		ginContext.Set("user", user)
 	}
 }

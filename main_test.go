@@ -12,16 +12,35 @@ import (
 	"github.com/go-playground/assert/v2"
 )
 
-func clearTestUser(t *testing.T) {
+func clearTestUser1(t *testing.T) {
 
-	getUser, err := libraries.FirestoreFind("users", "test")
+	getUser, err := libraries.FirestoreFind("users", "test1")
 	if getUser.Exists() {
-		_, err = libraries.FirestoreDelete("users", "test")
+		_, err = libraries.FirestoreDelete("users", "test1")
 		assert.Equal(t, nil, err)
-		_, err = libraries.FirestoreDelete("tokenUUID", "test")
+		_, err = libraries.FirestoreDelete("tokenUUID", "test1")
 		assert.Equal(t, nil, err)
 	}
-	getEmail, err := libraries.FirestoreSearch("users", "Email", "==", "test@example.com")
+	getEmail, err := libraries.FirestoreSearch("users", "Email", "==", "test1@example.com")
+	assert.Equal(t, nil, err)
+	if len(getEmail) > 0 {
+		_, err = libraries.FirestoreDelete("users", getEmail[0].Data()["Username"].(string))
+		assert.Equal(t, nil, err)
+		_, err = libraries.FirestoreDelete("tokenUUID", getEmail[0].Data()["Username"].(string))
+		assert.Equal(t, nil, err)
+	}
+}
+
+func clearTestUser2(t *testing.T) {
+
+	getUser, err := libraries.FirestoreFind("users", "test2")
+	if getUser.Exists() {
+		_, err = libraries.FirestoreDelete("users", "test2")
+		assert.Equal(t, nil, err)
+		_, err = libraries.FirestoreDelete("tokenUUID", "test2")
+		assert.Equal(t, nil, err)
+	}
+	getEmail, err := libraries.FirestoreSearch("users", "Email", "==", "test2@example.com")
 	assert.Equal(t, nil, err)
 	if len(getEmail) > 0 {
 		_, err = libraries.FirestoreDelete("users", getEmail[0].Data()["Username"].(string))
@@ -33,12 +52,12 @@ func clearTestUser(t *testing.T) {
 
 func TestRegisterWithAGoodInfo(t *testing.T) {
 	setupServer()
-	clearTestUser(t)
+	clearTestUser1(t)
 
 	registerInfo := new(models.User)
-	registerInfo.Username = "test"
-	registerInfo.Email = "test@example.com"
-	registerInfo.Password = "testpassword"
+	registerInfo.Username = "test1"
+	registerInfo.Email = "test1@example.com"
+	registerInfo.Password = "test1password"
 	b, _ := json.Marshal(registerInfo)
 	writer := httptest.NewRecorder()
 	request, _ := http.NewRequest("POST", "/register", bytes.NewBuffer([]byte(b)))
@@ -52,13 +71,13 @@ func TestRegisterWithAGoodInfo(t *testing.T) {
 
 func TestRigesterLogoutLoginLogout(t *testing.T) {
 	setupServer()
-	clearTestUser(t)
+	clearTestUser1(t)
 
 	// register
 	registerInfo := new(models.User)
-	registerInfo.Username = "test"
-	registerInfo.Email = "test@example.com"
-	registerInfo.Password = "testpassword"
+	registerInfo.Username = "test1"
+	registerInfo.Email = "test1@example.com"
+	registerInfo.Password = "test1password"
 	b, _ := json.Marshal(registerInfo)
 	writer := httptest.NewRecorder()
 	request, _ := http.NewRequest("POST", "/register", bytes.NewBuffer([]byte(b)))
@@ -83,8 +102,8 @@ func TestRigesterLogoutLoginLogout(t *testing.T) {
 	//Login
 	writer = httptest.NewRecorder()
 	login := new(models.LoginCredential)
-	login.ID = "test"
-	login.Password = "testpassword"
+	login.ID = "test1"
+	login.Password = "test1password"
 	b, _ = json.Marshal(login)
 	request, _ = http.NewRequest("POST", "/login", bytes.NewBuffer([]byte(b)))
 	getServer("test").ServeHTTP(writer, request)
@@ -153,21 +172,82 @@ func TestVerifyEmailWithBadLink(t *testing.T) {
 	assert.Equal(t, `{"message":"Bad verification link."}`, writer.Body.String())
 }
 
-func TestUnauthorizedBoardAction(t *testing.T) {
+func TestUnauthorizedProjectAction(t *testing.T) {
 	setupServer()
-	board := new(models.Board)
-	board.Name = "myboardname"
-	b, _ := json.Marshal(board)
 	endpoints := map[string]string{
-		"/board/new":    "POST",
-		"/board/find":   "POST",
-		"/board/update": "PATCH",
-		"/board/delete": "DELETE",
+		"/project/new":    "POST",
+		"/project/find":   "POST",
+		"/project/update": "PATCH",
+		"/project/delete": "DELETE",
 	}
 	for key, element := range endpoints {
 		writer := httptest.NewRecorder()
-		request, _ := http.NewRequest(element, key, bytes.NewBuffer([]byte(b)))
+		request, _ := http.NewRequest(element, key, nil)
 		getServer("test").ServeHTTP(writer, request)
 		assert.Equal(t, http.StatusUnauthorized, writer.Code)
 	}
+}
+
+func TestCreateBoardInNotOwingProject(t *testing.T) {
+	setupServer()
+	clearTestUser1(t)
+	clearTestUser2(t)
+	var response map[string]interface{}
+
+	// register1
+	registerInfo := new(models.User)
+	registerInfo.Username = "test1"
+	registerInfo.Email = "test1@example.com"
+	registerInfo.Password = "test1password"
+	b, _ := json.Marshal(registerInfo)
+	writer := httptest.NewRecorder()
+	request, _ := http.NewRequest("POST", "/register", bytes.NewBuffer([]byte(b)))
+	getServer("test").ServeHTTP(writer, request)
+	assert.Equal(t, http.StatusOK, writer.Code)
+	json.Unmarshal([]byte(writer.Body.String()), &response)
+	token1 := new(libraries.Token)
+	token1.AccessToken = response["token"].(map[string]interface{})["access_token"].(string)
+
+	// register2
+	registerInfo = new(models.User)
+	registerInfo.Username = "test2"
+	registerInfo.Email = "test2@example.com"
+	registerInfo.Password = "test2password"
+	b, _ = json.Marshal(registerInfo)
+	writer = httptest.NewRecorder()
+	request, _ = http.NewRequest("POST", "/register", bytes.NewBuffer([]byte(b)))
+	getServer("test").ServeHTTP(writer, request)
+	assert.Equal(t, http.StatusOK, writer.Code)
+	json.Unmarshal([]byte(writer.Body.String()), &response)
+	token2 := new(libraries.Token)
+	token2.AccessToken = response["token"].(map[string]interface{})["access_token"].(string)
+
+	// created project by user test1
+	project := new(models.Project)
+	project.Name = "My New Project"
+	b, _ = json.Marshal(project)
+	writer = httptest.NewRecorder()
+	request, _ = http.NewRequest("POST", "/project/new", bytes.NewBuffer([]byte(b)))
+	request.Header.Set("Authorization", token1.AccessToken)
+	getServer("test").ServeHTTP(writer, request)
+	assert.Equal(t, http.StatusCreated, writer.Code)
+	json.Unmarshal([]byte(writer.Body.String()), &response)
+	createdProjectUUID := response["project"].(map[string]interface{})["uuid"].(string)
+
+	// user test2 try to created board under project of user test1. (should fail.)
+	board := new(models.Board)
+	board.Name = "My new board"
+	board.Project = createdProjectUUID
+	b, _ = json.Marshal(board)
+	writer = httptest.NewRecorder()
+	request, _ = http.NewRequest("POST", "/board/new", bytes.NewBuffer([]byte(b)))
+	request.Header.Set("Authorization", token2.AccessToken)
+	getServer("test").ServeHTTP(writer, request)
+	assert.Equal(t, http.StatusForbidden, writer.Code)
+
+	clearTestUser1(t)
+	clearTestUser2(t)
+
+	_, err := libraries.FirestoreDelete("projects", createdProjectUUID)
+	assert.Equal(t, nil, err)
 }

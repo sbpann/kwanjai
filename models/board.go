@@ -12,6 +12,7 @@ type Board struct {
 	UUID        string `json:"uuid"`
 	User        string `json:"user"`
 	Name        string `json:"name" binding:"required"`
+	Project     string `json:"project" binding:"required"`
 	Description string `json:"description"`
 }
 
@@ -61,7 +62,7 @@ func (board *Board) findBoard() (int, string, *Board) {
 	}
 	getBoard, _ := libraries.FirestoreFind("boards", board.UUID)
 	if getBoard.Exists() {
-		getBoard.DataTo(&board)
+		getBoard.DataTo(board)
 		return http.StatusOK, "Get board successfully.", board
 	}
 	return http.StatusNotFound, "Board not found.", nil

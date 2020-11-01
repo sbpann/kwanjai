@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"kwanjai/helpers"
+	"kwanjai/libraries"
 	"kwanjai/models"
 	"net/http"
 
@@ -17,6 +18,22 @@ func NewBoard() gin.HandlerFunc {
 		board.User = username
 		if err != nil {
 			ginContext.JSON(http.StatusBadRequest, gin.H{"message": "Board name is required."})
+			return
+		}
+		// Check project owner
+		project := new(models.Project)
+		getProject, err := libraries.FirestoreFind("projects", board.Project)
+		if !getProject.Exists() {
+			ginContext.JSON(http.StatusNotFound, gin.H{"message": "Project not found."})
+			return
+		}
+		err = getProject.DataTo(project)
+		if err != nil {
+			ginContext.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+			return
+		}
+		if project.User != username {
+			ginContext.JSON(http.StatusForbidden, gin.H{"message": "You cannot perform this action."})
 			return
 		}
 		status, message, board := models.NewBoard(board)

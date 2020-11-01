@@ -53,7 +53,10 @@ func Register() gin.HandlerFunc {
 		}
 		token := new(libraries.Token)
 		token.Initialize(user.Username)
-		if registerInfo.Username == "test" || registerInfo.Email == "test@example.com" {
+		if registerInfo.Username == "test1" ||
+			registerInfo.Email == "test1@example.com" ||
+			registerInfo.Username == "test2" ||
+			registerInfo.Email == "test2@example.com" {
 			ginContext.JSON(status, gin.H{
 				"message": message,
 				"token":   token,
