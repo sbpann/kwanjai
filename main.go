@@ -47,6 +47,7 @@ func getServer(mode string) *gin.Engine {
 	}
 	ginEngine := gin.Default()
 	ginEngine.Use(config.DefaultAuthenticationBackend)
+	ginEngine.StaticFile("/media/default_profile_picture.png", "./static/media/default_profile_picture.png")
 	ginEngine.POST("/login", controllers.Login())
 	ginEngine.POST("/register", controllers.Register())
 	ginEngine.POST("/logout", middlewares.AuthenticatedOnly(), controllers.Logout())
