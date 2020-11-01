@@ -9,7 +9,6 @@ import (
 	"net/smtp"
 	"time"
 
-	"cloud.google.com/go/firestore"
 	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -21,7 +20,7 @@ type VerificationEmail struct {
 	Email       string `json:"email"`
 	Key         string `json:"key"`
 	UUID        string
-	ExpiredDate string
+	ExpiredDate time.Time
 }
 
 // Initialize email objects.
@@ -31,7 +30,7 @@ func (email *VerificationEmail) Initialize(user string, emailAddress string) {
 	email.Email = emailAddress
 	email.Key = fmt.Sprintf("%06d", random.Intn(999999))
 	email.UUID = uuid.New().String()
-	email.ExpiredDate = time.Now().Add(config.EmailVerficationLifetime).Format(time.RFC3339)
+	email.ExpiredDate = time.Now().Add(config.EmailVerficationLifetime)
 }
 
 // smtpServer data.
@@ -74,9 +73,7 @@ func (email *VerificationEmail) Verify() (int, string) {
 	if email.UUID == "" {
 		return http.StatusBadRequest, "Bad verification link."
 	}
-	firestoreClient, err := libraries.FirebaseApp().Firestore(config.Context)
-	defer firestoreClient.Close()
-	getEmail, err := firestoreClient.Collection("verificationemail").Doc(email.UUID).Get(config.Context)
+	getEmail, err := libraries.FirestoreFind("verificationemail", email.UUID)
 	if !getEmail.Exists() {
 		if err != nil {
 			emailPath := getEmail.Ref.Path
@@ -91,23 +88,18 @@ func (email *VerificationEmail) Verify() (int, string) {
 	verificationEmail := new(VerificationEmail)
 	err = getEmail.DataTo(&verificationEmail)
 	now := time.Now()
-	expriredDate, err := time.Parse(time.RFC3339, verificationEmail.ExpiredDate)
+	expriredDate := verificationEmail.ExpiredDate
 	exprired := now.After(expriredDate)
 	if exprired {
-		_, err = firestoreClient.Collection("verificationemail").Doc(email.UUID).Delete(config.Context)
+		_, err = libraries.FirestoreDelete("verificationemail", email.UUID)
 		if err != nil {
 			return http.StatusInternalServerError, err.Error()
 		}
 		return http.StatusBadRequest, "Link is expired."
 	}
 	if email.Key == verificationEmail.Key {
-		_, err = firestoreClient.Collection("users").Doc(verificationEmail.User).Update(config.Context, []firestore.Update{
-			{
-				Path:  "IsVerified",
-				Value: true,
-			},
-		})
-		_, err = firestoreClient.Collection("verificationemail").Doc(email.UUID).Delete(config.Context)
+		_, err = libraries.FirestoreUpdateField("users", verificationEmail.User, "IsVerified", true)
+		_, err = libraries.FirestoreDelete("verificationemail", email.UUID)
 		if err != nil {
 			return http.StatusInternalServerError, err.Error()
 		}

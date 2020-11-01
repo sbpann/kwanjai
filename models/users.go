@@ -1,7 +1,6 @@
 package models
 
 import (
-	"kwanjai/config"
 	"kwanjai/libraries"
 	"net/http"
 	"strings"
@@ -46,12 +45,32 @@ func Finduser(perform userPerform) (int, string, *User) {
 	return status, message, user
 }
 
-func (user *User) createUser() (int, string, *User) {
-	firestoreClient, err := libraries.FirebaseApp().Firestore(config.Context)
-	defer firestoreClient.Close()
+func (user *User) findUser() (int, string, *User) {
+	if user.Username == "" && user.Email == "" {
+		return http.StatusNotFound, "User not found.", nil
+	}
+	getUser, err := libraries.FirestoreFind("users", user.Username)
+	if err != nil {
+		getEmail, err := libraries.FirestoreSearch("users", "Email", "==", user.Email)
+		if err != nil {
+			return http.StatusInternalServerError, err.Error(), nil
+		}
+		if len(getEmail) > 0 {
+			getEmail[0].DataTo(&user)
+			user.HashedPassword = ""
+			return http.StatusOK, "Get user successfully.", user
+		}
+		return http.StatusNotFound, "User not found.", nil
+	}
+	err = getUser.DataTo(&user)
 	if err != nil {
 		return http.StatusInternalServerError, err.Error(), nil
 	}
+	user.HashedPassword = ""
+	return http.StatusOK, "Get user successfully.", user
+}
+
+func (user *User) createUser() (int, string, *User) {
 	user.Username = strings.ToLower(user.Username)
 	user.Email = strings.ToLower(user.Email)
 	_, _, userFoud := user.findUser()
@@ -59,7 +78,7 @@ func (user *User) createUser() (int, string, *User) {
 		return http.StatusConflict, "Provided email or username is already registered.", nil
 	}
 	user.initialize()
-	_, err = firestoreClient.Collection("users").Doc(user.Username).Set(config.Context, user)
+	_, err := libraries.FirestoreCreatedOrSet("users", user.Username, user)
 	if err != nil {
 		return http.StatusInternalServerError, err.Error(), nil
 	}
@@ -74,47 +93,11 @@ func (user *User) login() (int, string) {
 	return login.login()
 }
 
-func (user *User) findUser() (int, string, *User) {
-	if user.Username == "" && user.Email == "" {
-		return http.StatusNotFound, "User not found.", nil
-	}
-	firestoreClient, err := libraries.FirebaseApp().Firestore(config.Context)
-	defer firestoreClient.Close()
-	if err != nil {
-		return http.StatusInternalServerError, err.Error(), nil
-	}
-	getUser, err := firestoreClient.Collection("users").Doc(user.Username).Get(config.Context)
-	if err != nil {
-		findEmail := firestoreClient.Collection("users").Where("Email", "==", user.Email).Documents(config.Context)
-		foundEmail, err := findEmail.GetAll()
-		if err != nil {
-			return http.StatusInternalServerError, err.Error(), nil
-		}
-		if len(foundEmail) > 0 {
-			foundEmail[0].DataTo(&user)
-			user.HashedPassword = ""
-			return http.StatusOK, "Get user successfully.", user
-		}
-		return http.StatusNotFound, "User not found.", nil
-	}
-	err = getUser.DataTo(&user)
-	if err != nil {
-		return http.StatusInternalServerError, err.Error(), nil
-	}
-	user.HashedPassword = ""
-	return http.StatusOK, "Get user successfully.", user
-}
-
 // SendVerificationEmail method for user model.
 func (user *User) SendVerificationEmail() (int, string) {
 	email := new(VerificationEmail)
 	email.Initialize(user.Username, user.Email)
-	firestoreClient, err := libraries.FirebaseApp().Firestore(config.Context)
-	defer firestoreClient.Close()
-	if err != nil {
-		return http.StatusInternalServerError, err.Error()
-	}
-	_, err = firestoreClient.Collection("verificationemail").Doc(email.UUID).Set(config.Context, email)
+	_, err := libraries.FirestoreCreatedOrSet("verificationemail", email.UUID, email)
 	if err != nil {
 		return http.StatusInternalServerError, err.Error()
 	}

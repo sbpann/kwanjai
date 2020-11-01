@@ -1,7 +1,6 @@
 package middlewares
 
 import (
-	"kwanjai/config"
 	"kwanjai/helpers"
 	"kwanjai/libraries"
 	"kwanjai/models"
@@ -22,9 +21,7 @@ func JWTAuthorization() gin.HandlerFunc {
 			ginContext.Set("user", user)
 			return
 		}
-		firestoreClient, err := libraries.FirebaseApp().Firestore(config.Context)
-		defer firestoreClient.Close()
-		getUser, err := firestoreClient.Collection("users").Doc(username).Get(config.Context)
+		getUser, err := libraries.FirestoreFind("users", username)
 		if err != nil {
 			ginContext.AbortWithStatus(500)
 			return

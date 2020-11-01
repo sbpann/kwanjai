@@ -3,45 +3,37 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"kwanjai/config"
 	"kwanjai/libraries"
 	"kwanjai/models"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
-	"cloud.google.com/go/firestore"
 	"github.com/go-playground/assert/v2"
 )
 
-func clearTestUser(t *testing.T, firestoreClient *firestore.Client) {
+func clearTestUser(t *testing.T) {
 
-	getUser, err := firestoreClient.Collection("users").Doc("test").Get(config.Context)
+	getUser, err := libraries.FirestoreFind("users", "test")
 	if getUser.Exists() {
-		_, err = firestoreClient.Collection("users").Doc("test").Delete(config.Context)
+		_, err = libraries.FirestoreDelete("users", "test")
+		assert.Equal(t, nil, err)
+		_, err = libraries.FirestoreDelete("tokenUUID", "test")
 		assert.Equal(t, nil, err)
 	}
-	findEmail := firestoreClient.Collection("users").Where("Email", "==", "test@example.com").Documents(config.Context)
-	foundEmail, err := findEmail.GetAll()
+	getEmail, err := libraries.FirestoreSearch("users", "Email", "==", "test@example.com")
 	assert.Equal(t, nil, err)
-	if len(foundEmail) > 0 {
-		user := new(models.User)
-		_ = foundEmail[0].DataTo(&user)
-		_, err = firestoreClient.Collection("users").Doc(user.Username).Delete(config.Context)
+	if len(getEmail) > 0 {
+		_, err = libraries.FirestoreDelete("users", getEmail[0].Data()["Username"].(string))
 		assert.Equal(t, nil, err)
-		_, err = firestoreClient.Collection("tokenUUID").Doc(user.Username).Delete(config.Context)
+		_, err = libraries.FirestoreDelete("tokenUUID", getEmail[0].Data()["Username"].(string))
 		assert.Equal(t, nil, err)
 	}
 }
 
 func TestRegisterWithAGoodInfo(t *testing.T) {
 	setupServer()
-	// find test user and delete
-	firestoreClient, err := libraries.FirebaseApp().Firestore(config.Context)
-	defer firestoreClient.Close()
-	assert.Equal(t, nil, err)
-	clearTestUser(t, firestoreClient)
-	// find test user and delete
+	clearTestUser(t)
 
 	registerInfo := new(models.User)
 	registerInfo.Username = "test"
@@ -56,12 +48,61 @@ func TestRegisterWithAGoodInfo(t *testing.T) {
 	var response map[string]interface{}
 	json.Unmarshal([]byte(writer.Body.String()), &response)
 	assert.Equal(t, response["warning"].(string), "You have just registered with the username (test) or the email (test@example.com) which is going to be delete eventually. Please avoid using those names.")
+}
 
-	// clear data
-	_, err = firestoreClient.Collection("users").Doc("test").Delete(config.Context)
-	assert.Equal(t, nil, err)
-	_, err = firestoreClient.Collection("tokenUUID").Doc("test").Delete(config.Context)
-	assert.Equal(t, nil, err)
+func TestRigesterLogoutLoginLogout(t *testing.T) {
+	setupServer()
+	clearTestUser(t)
+
+	// register
+	registerInfo := new(models.User)
+	registerInfo.Username = "test"
+	registerInfo.Email = "test@example.com"
+	registerInfo.Password = "testpassword"
+	b, _ := json.Marshal(registerInfo)
+	writer := httptest.NewRecorder()
+	request, _ := http.NewRequest("POST", "/register", bytes.NewBuffer([]byte(b)))
+	getServer("test").ServeHTTP(writer, request)
+	assert.Equal(t, http.StatusOK, writer.Code)
+
+	// Logout
+	var response map[string]interface{}
+	json.Unmarshal([]byte(writer.Body.String()), &response)
+	writer = httptest.NewRecorder()
+	token := new(libraries.Token)
+	token.AccessToken = response["token"].(map[string]interface{})["access_token"].(string)
+	token.RefreshToken = response["token"].(map[string]interface{})["refresh_token"].(string)
+	b, _ = json.Marshal(token)
+	request, _ = http.NewRequest("POST", "/logout", bytes.NewBuffer([]byte(b)))
+	request.Header.Set("Authorization", token.AccessToken)
+	getServer("test").ServeHTTP(writer, request)
+	assert.Equal(t, http.StatusOK, writer.Code)
+	json.Unmarshal([]byte(writer.Body.String()), &response)
+	assert.Equal(t, response["message"].(string), "User logged out successfully.")
+
+	//Login
+	writer = httptest.NewRecorder()
+	login := new(models.LoginCredential)
+	login.ID = "test"
+	login.Password = "testpassword"
+	b, _ = json.Marshal(login)
+	request, _ = http.NewRequest("POST", "/login", bytes.NewBuffer([]byte(b)))
+	getServer("test").ServeHTTP(writer, request)
+	assert.Equal(t, http.StatusOK, writer.Code)
+
+	// Logout
+	json.Unmarshal([]byte(writer.Body.String()), &response)
+	token = new(libraries.Token)
+	token.AccessToken = response["token"].(map[string]interface{})["access_token"].(string)
+	token.RefreshToken = response["token"].(map[string]interface{})["refresh_token"].(string)
+	writer = httptest.NewRecorder()
+	b, _ = json.Marshal(token)
+	request, _ = http.NewRequest("POST", "/logout", bytes.NewBuffer([]byte(b)))
+	request.Header.Set("Authorization", token.AccessToken)
+	getServer("test").ServeHTTP(writer, request)
+	assert.Equal(t, http.StatusOK, writer.Code)
+	json.Unmarshal([]byte(writer.Body.String()), &response)
+	assert.Equal(t, response["message"].(string), "User logged out successfully.")
 }
 
 func TestRegisterWithBadEmailFormat(t *testing.T) {

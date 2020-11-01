@@ -1,12 +1,10 @@
 package models
 
 import (
-	"kwanjai/config"
 	"kwanjai/libraries"
 	"net/http"
 	"strings"
 
-	"cloud.google.com/go/firestore"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -56,24 +54,18 @@ func (login *LoginCredential) login() (int, string) {
 	hashedPassword := ""
 	username := ""
 	login.ID = strings.ToLower(login.ID)
-	firestoreClient, err := libraries.FirebaseApp().Firestore(config.Context)
-	defer firestoreClient.Close()
-	if err != nil {
-		return http.StatusInternalServerError, err.Error()
-	}
-	getUser, err := firestoreClient.Collection("users").Doc(login.ID).Get(config.Context)
+	getUser, err := libraries.FirestoreFind("users", login.ID)
 	if err != nil {
 		userPath := getUser.Ref.Path
 		userNotExist := status.Errorf(codes.NotFound, "%q not found", userPath)
 		if err.Error() == userNotExist.Error() {
-			findEmail := firestoreClient.Collection("users").Where("Email", "==", login.ID).Documents(config.Context)
-			foundEmail, err := findEmail.GetAll()
+			getEmail, err := libraries.FirestoreSearch("users", "Email", "==", login.ID)
 			if err != nil {
 				return http.StatusInternalServerError, err.Error()
 			}
-			if len(foundEmail) > 0 {
-				hashedPassword = foundEmail[0].Data()["HashedPassword"].(string)
-				username = foundEmail[0].Data()["Username"].(string)
+			if len(getEmail) > 0 {
+				hashedPassword = getEmail[0].Data()["HashedPassword"].(string)
+				username = getEmail[0].Data()["Username"].(string)
 			} else {
 				return http.StatusBadRequest, "Cannot login with provided credential."
 			}
@@ -88,7 +80,7 @@ func (login *LoginCredential) login() (int, string) {
 	if !passwordPass {
 		return http.StatusBadRequest, "Cannot login with provided credential."
 	}
-	_, err = firestoreClient.Collection("users").Doc(username).Update(config.Context, []firestore.Update{{Path: "IsActive", Value: true}})
+	_, err = libraries.FirestoreUpdateField("users", username, "IsActive", true)
 	if err != nil {
 		return http.StatusInternalServerError, err.Error()
 	}

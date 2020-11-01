@@ -1,11 +1,9 @@
 package models
 
 import (
-	"kwanjai/config"
 	"kwanjai/libraries"
 	"net/http"
 
-	"cloud.google.com/go/firestore"
 	"github.com/google/uuid"
 )
 
@@ -49,13 +47,8 @@ func DeleteBoard(perform boardPerform) (int, string, *Board) {
 }
 
 func (board *Board) createBoard() (int, string, *Board) {
-	firestoreClient, err := libraries.FirebaseApp().Firestore(config.Context)
-	defer firestoreClient.Close()
-	if err != nil {
-		return http.StatusInternalServerError, err.Error(), nil
-	}
 	board.UUID = uuid.New().String()
-	_, err = firestoreClient.Collection("boards").Doc(board.UUID).Set(config.Context, board)
+	_, err := libraries.FirestoreCreatedOrSet("boards", board.UUID, board)
 	if err != nil {
 		return http.StatusInternalServerError, err.Error(), nil
 	}
@@ -66,12 +59,7 @@ func (board *Board) findBoard() (int, string, *Board) {
 	if board.UUID == "" {
 		return http.StatusNotFound, "Board not found.", nil
 	}
-	firestoreClient, err := libraries.FirebaseApp().Firestore(config.Context)
-	defer firestoreClient.Close()
-	if err != nil {
-		return http.StatusInternalServerError, err.Error(), nil
-	}
-	getBoard, err := firestoreClient.Collection("boards").Doc(board.UUID).Get(config.Context)
+	getBoard, _ := libraries.FirestoreFind("boards", board.UUID)
 	if getBoard.Exists() {
 		getBoard.DataTo(&board)
 		return http.StatusOK, "Get board successfully.", board
@@ -80,21 +68,8 @@ func (board *Board) findBoard() (int, string, *Board) {
 }
 
 func (board *Board) updateBoard() (int, string, *Board) {
-	firestoreClient, err := libraries.FirebaseApp().Firestore(config.Context)
-	defer firestoreClient.Close()
-	if err != nil {
-		return http.StatusInternalServerError, err.Error(), nil
-	}
-	_, err = firestoreClient.Collection("boards").Doc(board.UUID).Update(config.Context, []firestore.Update{
-		{
-			Path:  "Name",
-			Value: board.Name,
-		},
-		{
-			Path:  "Description",
-			Value: board.Description,
-		},
-	})
+	_, err := libraries.FirestoreUpdateField("boards", board.UUID, "Name", board.Name)
+	_, err = libraries.FirestoreUpdateField("boards", board.UUID, "Description", board.Description)
 	if err != nil {
 		return http.StatusInternalServerError, err.Error(), nil
 	}
@@ -102,12 +77,7 @@ func (board *Board) updateBoard() (int, string, *Board) {
 }
 
 func (board *Board) deleteBoard() (int, string, *Board) {
-	firestoreClient, err := libraries.FirebaseApp().Firestore(config.Context)
-	defer firestoreClient.Close()
-	if err != nil {
-		return http.StatusInternalServerError, err.Error(), nil
-	}
-	_, err = firestoreClient.Collection("boards").Doc(board.UUID).Delete(config.Context)
+	_, err := libraries.FirestoreDelete("boards", board.UUID)
 	if err != nil {
 		return http.StatusInternalServerError, err.Error(), nil
 	}

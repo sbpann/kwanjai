@@ -74,7 +74,7 @@ func Logout() gin.HandlerFunc {
 	return func(ginContext *gin.Context) {
 		logout := new(models.LogoutData)
 		token := new(libraries.Token)
-		ginContext.ShouldBind(token)
+		ginContext.ShouldBindJSON(token)
 		token.AccessToken = ginContext.Request.Header.Get("Authorization")
 		if token.RefreshToken == "" {
 			ginContext.JSON(http.StatusBadRequest, gin.H{"message": "No refresh token provied."})
@@ -91,8 +91,8 @@ func Logout() gin.HandlerFunc {
 			ginContext.JSON(http.StatusUnauthorized, gin.H{"message": "Token verification failed."})
 			return
 		}
-		go libraries.DeleteToken(helpers.GetUsername(ginContext), <-accessTokenUUID)
-		go libraries.DeleteToken(helpers.GetUsername(ginContext), <-refreshTokenUUID)
+		go libraries.FirestoreDeleteField("tokenUUID", helpers.GetUsername(ginContext), <-accessTokenUUID)
+		go libraries.FirestoreDeleteField("tokenUUID", helpers.GetUsername(ginContext), <-refreshTokenUUID)
 
 		ginContext.JSON(200, gin.H{"message": "User logged out successfully."})
 	}
@@ -125,7 +125,7 @@ func RefreshToken() gin.HandlerFunc {
 		}
 		_, user, tokenUUID, err := libraries.VerifyToken(token.AccessToken, "access") // if token is expried here. it got delete.
 		if user != "anonymous" && err == nil {                                        // which means token is still valid.
-			err = libraries.DeleteToken(user, tokenUUID)
+			_, err = libraries.FirestoreDeleteField("tokenUUID", user, tokenUUID)
 			if err != nil {
 				ginContext.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 				return
