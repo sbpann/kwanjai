@@ -110,30 +110,27 @@ func CreateToken(tokenType string, username string) (string, error) {
 
 // Initialize token method.
 func (token *Token) Initialize(username string) (int, string) {
-	var passed bool
+
 	tokenStatus := new(tokenStatus)
-	go tokenStatus.createToken(username, "access", token)
-	go tokenStatus.createToken(username, "refresh", token)
-	timeout := time.Now().Add(time.Second * 4)
-	timer := time.Now()
-	for !passed && timer.Before(timeout) {
-		passed = tokenStatus.AccessToken == true && tokenStatus.RefreshToken == true
-		timer = time.Now()
-	}
+	accessPassed := make(chan bool)
+	refreshPassed := make(chan bool)
+	go tokenStatus.createToken(username, "access", token, accessPassed)
+	go tokenStatus.createToken(username, "refresh", token, refreshPassed)
+	passed := true == <-accessPassed && true == <-refreshPassed
 	if !passed {
 		return http.StatusInternalServerError, "create token error"
 	}
 	return http.StatusOK, "Token issued."
 }
 
-func (tokenStatus *tokenStatus) createToken(username string, tokenType string, token *Token) {
+func (tokenStatus *tokenStatus) createToken(username string, tokenType string, token *Token, passed chan bool) {
 	var err error
 	if tokenType == "access" {
 		token.AccessToken, err = CreateToken("access", username)
-		tokenStatus.AccessToken = err == nil
+		passed <- err == nil
 	} else if tokenType == "refresh" {
 		token.RefreshToken, err = CreateToken("refresh", username)
-		tokenStatus.RefreshToken = err == nil
+		passed <- err == nil
 	}
 }
 

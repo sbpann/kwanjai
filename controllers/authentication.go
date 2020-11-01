@@ -5,7 +5,6 @@ import (
 	"kwanjai/libraries"
 	"kwanjai/models"
 	"net/http"
-	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -28,7 +27,7 @@ func Login() gin.HandlerFunc {
 		}
 		token := new(libraries.Token)
 		token.Initialize(username)
-		ginContext.JSON(status, gin.H{"user": username, "token": token})
+		ginContext.JSON(status, gin.H{"token": token})
 	}
 }
 
@@ -57,7 +56,6 @@ func Register() gin.HandlerFunc {
 		if registerInfo.Username == "test" || registerInfo.Email == "test@example.com" {
 			ginContext.JSON(status, gin.H{
 				"message": message,
-				"user":    user,
 				"token":   token,
 				"warning": "You have just registered with the username (test) or the email (test@example.com) which is going to be delete eventually. Please avoid using those names.",
 			})
@@ -65,7 +63,6 @@ func Register() gin.HandlerFunc {
 		}
 		ginContext.JSON(status, gin.H{
 			"message": message,
-			"user":    user,
 			"token":   token,
 		})
 
@@ -75,13 +72,6 @@ func Register() gin.HandlerFunc {
 // Logout endpoint
 func Logout() gin.HandlerFunc {
 	return func(ginContext *gin.Context) {
-		var (
-			passed           bool
-			accessPassed     bool
-			refreshPassed    bool
-			accessTokenUUID  string
-			refreshTokenUUID string
-		)
 		logout := new(models.LogoutData)
 		token := new(libraries.Token)
 		ginContext.ShouldBind(token)
@@ -90,24 +80,19 @@ func Logout() gin.HandlerFunc {
 			ginContext.JSON(http.StatusBadRequest, gin.H{"message": "No refresh token provied."})
 			return
 		}
-		go logout.Verify(token.AccessToken, "access")
-		go logout.Verify(token.RefreshToken, "refresh")
-		timeout := time.Now().Add(time.Second * 4)
-		timer := time.Now()
-		for !passed && timer.Before(timeout) {
-			accessPassed = logout.AccessPassed
-			refreshPassed = logout.RefreshPassed
-			accessTokenUUID = logout.AccessTokenUUID
-			refreshTokenUUID = logout.RefreshTokenUUID
-			passed = accessPassed == true && refreshPassed == true
-			timer = time.Now()
-		}
+		accessPassed := make(chan bool)
+		accessTokenUUID := make(chan string)
+		refreshPassed := make(chan bool)
+		refreshTokenUUID := make(chan string)
+		go logout.Verify(token.AccessToken, "access", accessPassed, accessTokenUUID)
+		go logout.Verify(token.RefreshToken, "refresh", refreshPassed, refreshTokenUUID)
+		passed := true == <-accessPassed && true == <-refreshPassed
 		if !passed {
 			ginContext.JSON(http.StatusUnauthorized, gin.H{"message": "Token verification failed."})
 			return
 		}
-		go libraries.DeleteToken(helpers.GetUsername(ginContext), accessTokenUUID)
-		go libraries.DeleteToken(helpers.GetUsername(ginContext), refreshTokenUUID)
+		go libraries.DeleteToken(helpers.GetUsername(ginContext), <-accessTokenUUID)
+		go libraries.DeleteToken(helpers.GetUsername(ginContext), <-refreshTokenUUID)
 
 		ginContext.JSON(200, gin.H{"message": "User logged out successfully."})
 	}

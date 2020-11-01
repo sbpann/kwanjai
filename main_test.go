@@ -16,8 +16,8 @@ import (
 
 func clearTestUser(t *testing.T, firestoreClient *firestore.Client) {
 
-	_, err := firestoreClient.Collection("users").Doc("test").Get(config.Context)
-	if err == nil {
+	getUser, err := firestoreClient.Collection("users").Doc("test").Get(config.Context)
+	if getUser.Exists() {
 		_, err = firestoreClient.Collection("users").Doc("test").Delete(config.Context)
 		assert.Equal(t, nil, err)
 	}
@@ -53,9 +53,9 @@ func TestRegisterWithAGoodInfo(t *testing.T) {
 	getServer("test").ServeHTTP(writer, request)
 	assert.Equal(t, http.StatusOK, writer.Code)
 
-	var result map[string]interface{}
-	json.Unmarshal([]byte(writer.Body.String()), &result)
-	assert.Equal(t, result["warning"].(string), "You have just registered with the username (test) or the email (test@example.com) which is going to be delete eventually. Please avoid using those names.")
+	var response map[string]interface{}
+	json.Unmarshal([]byte(writer.Body.String()), &response)
+	assert.Equal(t, response["warning"].(string), "You have just registered with the username (test) or the email (test@example.com) which is going to be delete eventually. Please avoid using those names.")
 
 	// clear data
 	_, err = firestoreClient.Collection("users").Doc("test").Delete(config.Context)

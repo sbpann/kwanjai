@@ -72,7 +72,7 @@ func (board *Board) findBoard() (int, string, *Board) {
 		return http.StatusInternalServerError, err.Error(), nil
 	}
 	getBoard, err := firestoreClient.Collection("boards").Doc(board.UUID).Get(config.Context)
-	if err == nil {
+	if getBoard.Exists() {
 		getBoard.DataTo(&board)
 		return http.StatusOK, "Get board successfully.", board
 	}

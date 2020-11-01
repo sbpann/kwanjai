@@ -10,16 +10,16 @@ import (
 
 // User model.
 type User struct {
-	Username       string `json:"username" binding:"required,ne=anonymous"`
-	Email          string `json:"email" binding:"required,email"`
-	Firstname      string `json:"firstname"`
-	Lastname       string `json:"lastname"`
-	Password       string `json:"password" binding:"required,min=8"`
-	HashedPassword string `json:",omitempty"`
-	IsSuperUser    bool   `json:"is_superuser"`
-	IsVerified     bool   `json:"is_verified"`
-	IsActive       bool   `json:"is_active"`
-	JoinedDate     string `json:"joined_date"`
+	Username       string    `json:"username" binding:"required,ne=anonymous"`
+	Email          string    `json:"email" binding:"required,email"`
+	Firstname      string    `json:"firstname"`
+	Lastname       string    `json:"lastname"`
+	Password       string    `json:"password" binding:"required,min=8"`
+	HashedPassword string    `json:",omitempty"`
+	IsSuperUser    bool      `json:"is_superuser"`
+	IsVerified     bool      `json:"is_verified"`
+	IsActive       bool      `json:"is_active"`
+	JoinedDate     time.Time `json:"joined_date"`
 }
 
 type userPerform interface {
@@ -132,7 +132,7 @@ func (user *User) HashPassword() {
 func (user *User) initialize() {
 	user.IsSuperUser = false
 	user.IsVerified = false
-	user.JoinedDate = time.Now().Format(time.RFC3339)
+	user.JoinedDate = time.Now()
 }
 
 // MakeAnonymous user
@@ -140,5 +140,5 @@ func (user *User) MakeAnonymous() {
 	user.Username = "anonymous"
 	user.IsSuperUser = false
 	user.IsVerified = false
-	user.JoinedDate = time.Now().Format(time.RFC3339)
+	user.JoinedDate = time.Now()
 }

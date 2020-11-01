@@ -71,6 +71,9 @@ func (email *VerificationEmail) Send() (int, string) {
 // The method set user to be verified if verification is completed.
 // If the email is expired, the method delete the email in database.
 func (email *VerificationEmail) Verify() (int, string) {
+	if email.UUID == "" {
+		return http.StatusBadRequest, "Bad verification link."
+	}
 	firestoreClient, err := libraries.FirebaseApp().Firestore(config.Context)
 	defer firestoreClient.Close()
 	getEmail, err := firestoreClient.Collection("verificationemail").Doc(email.UUID).Get(config.Context)

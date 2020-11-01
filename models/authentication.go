@@ -38,11 +38,15 @@ func Login(perform authenticationPerform) (int, string) {
 }
 
 // Verify logout credential.
-func (logout *LogoutData) Verify(tokenString string, tokenType string) {
+func (logout *LogoutData) Verify(tokenString string, tokenType string, passed chan bool, UUID chan string) {
 	if tokenType == "access" {
 		logout.AccessPassed, logout.User, logout.AccessTokenUUID, _ = libraries.VerifyToken(tokenString, "access")
+		passed <- logout.AccessPassed
+		UUID <- logout.AccessTokenUUID
 	} else if tokenType == "refresh" {
 		logout.RefreshPassed, logout.User, logout.RefreshTokenUUID, _ = libraries.VerifyToken(tokenString, "refresh")
+		passed <- logout.RefreshPassed
+		UUID <- logout.RefreshTokenUUID
 	} else {
 		return
 	}

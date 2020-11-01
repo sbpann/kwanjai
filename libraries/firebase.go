@@ -1,10 +1,12 @@
 package libraries
 
 import (
+	"errors"
 	"kwanjai/config"
 	"log"
 	"os"
 
+	"cloud.google.com/go/firestore"
 	firebase "firebase.google.com/go"
 	"google.golang.org/api/option"
 )
@@ -24,4 +26,28 @@ func FirebaseApp() *firebase.App {
 		log.Println(err)
 	}
 	return app
+}
+
+// FirestoreFind by collection and document ID.
+func FirestoreFind(collecttion string, id string) (*firestore.DocumentSnapshot, error) {
+	if collecttion == "" || id == "" {
+		// create blank document
+		blank := new(firestore.DocumentSnapshot)
+		blank.Ref = new(firestore.DocumentRef)
+		blank.Ref.Parent = new(firestore.CollectionRef)
+		return blank, errors.New("invalid document reference")
+	}
+	firestoreClient, err := FirebaseApp().Firestore(config.Context)
+	defer firestoreClient.Close()
+	document, err := firestoreClient.Collection(collecttion).Doc(id).Get(config.Context)
+	return document, err
+}
+
+// FirestoreSearch by collection and condition
+func FirestoreSearch(collecttion string, field string, condition string, property interface{}) ([]*firestore.DocumentSnapshot, error) {
+	firestoreClient, err := FirebaseApp().Firestore(config.Context)
+	defer firestoreClient.Close()
+	search := firestoreClient.Collection(collecttion).Where(field, condition, property).Documents(config.Context)
+	documents, err := search.GetAll()
+	return documents, err
 }
