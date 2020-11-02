@@ -9,44 +9,15 @@ import (
 
 // Project model
 type Project struct {
-	UUID string `json:"uuid"`
-	User string `json:"username"`
-	Name string `json:"name" binding:"required"`
+	UUID    string   `json:"uuid"`
+	User    string   `json:"username"`
+	Name    string   `json:"name" binding:"required"`
+	Members []string `json:"members"`
 }
 
-type projectPerform interface {
-	createProject() (int, string, *Project)
-	findProject() (int, string, *Project)
-	updateProject() (int, string, *Project)
-	deleteProject() (int, string, *Project)
-}
-
-// NewProject project method for interface with controller.
-func NewProject(perform projectPerform) (int, string, *Project) {
-	status, message, project := perform.createProject()
-	return status, message, project
-}
-
-// FindProject project method for interface with controller.
-func FindProject(perform projectPerform) (int, string, *Project) {
-	status, message, project := perform.findProject()
-	return status, message, project
-}
-
-// UpdateProject project method for interface with controller.
-func UpdateProject(perform projectPerform) (int, string, *Project) {
-	status, message, project := perform.updateProject()
-	return status, message, project
-}
-
-// DeleteProject project method for interface with controller.
-func DeleteProject(perform projectPerform) (int, string, *Project) {
-	status, message, project := perform.deleteProject()
-	return status, message, project
-}
-
-func (project *Project) createProject() (int, string, *Project) {
+func (project *Project) CreateProject() (int, string, *Project) {
 	project.UUID = uuid.New().String()
+	project.Members = append(project.Members, project.User)
 	_, err := libraries.FirestoreCreatedOrSet("projects", project.UUID, project)
 	if err != nil {
 		return http.StatusInternalServerError, err.Error(), nil
@@ -54,7 +25,7 @@ func (project *Project) createProject() (int, string, *Project) {
 	return http.StatusCreated, "Created project.", project
 }
 
-func (project *Project) findProject() (int, string, *Project) {
+func (project *Project) FindProject() (int, string, *Project) {
 	if project.UUID == "" {
 		return http.StatusNotFound, "Project not found.", nil
 	}
@@ -66,7 +37,7 @@ func (project *Project) findProject() (int, string, *Project) {
 	return http.StatusNotFound, "Project not found.", nil
 }
 
-func (project *Project) updateProject() (int, string, *Project) {
+func (project *Project) UpdateProject() (int, string, *Project) {
 	_, err := libraries.FirestoreUpdateField("projects", project.UUID, "Name", project.Name)
 	if err != nil {
 		return http.StatusInternalServerError, err.Error(), nil
@@ -74,7 +45,7 @@ func (project *Project) updateProject() (int, string, *Project) {
 	return http.StatusOK, "Updated sucessfully.", project
 }
 
-func (project *Project) deleteProject() (int, string, *Project) {
+func (project *Project) DeleteProject() (int, string, *Project) {
 	_, err := libraries.FirestoreDelete("projects", project.UUID)
 	if err != nil {
 		return http.StatusInternalServerError, err.Error(), nil

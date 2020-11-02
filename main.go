@@ -57,6 +57,7 @@ func getServer(mode string) *gin.Engine {
 	project := ginEngine.Group("/project")
 	project.Use(middlewares.AuthenticatedOnly())
 	{
+		project.GET("/all", controllers.AllProject())
 		project.POST("/new", controllers.NewProject())
 		project.POST("/find", controllers.FindProject())
 		project.PATCH("/update", controllers.UpdateProject())
@@ -65,10 +66,16 @@ func getServer(mode string) *gin.Engine {
 	board := ginEngine.Group("/board")
 	board.Use(middlewares.AuthenticatedOnly())
 	{
+		board.POST("/all", controllers.AllBoard())
 		board.POST("/new", controllers.NewBoard())
 		board.POST("/find", controllers.FindBoard())
 		board.PATCH("/update", controllers.UpdateBoard())
 		board.DELETE("/delete", controllers.DeleteBoard())
+	}
+	post := ginEngine.Group("/post")
+	post.Use(middlewares.AuthenticatedOnly())
+	{
+		post.POST("/new", controllers.NewPost())
 	}
 	return ginEngine
 }
@@ -76,5 +83,5 @@ func getServer(mode string) *gin.Engine {
 func main() {
 	setupServer()
 	ginEngine := getServer(os.Getenv("GIN_MODE"))
-	ginEngine.Run()
+	ginEngine.Run(":7777")
 }

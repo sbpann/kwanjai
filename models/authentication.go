@@ -26,15 +26,6 @@ type LogoutData struct {
 	RefreshDeleted   bool
 }
 
-type authenticationPerform interface {
-	login() (int, string)
-}
-
-// Login user.
-func Login(perform authenticationPerform) (int, string) {
-	return perform.login()
-}
-
 // Verify logout credential.
 func (logout *LogoutData) Verify(tokenString string, tokenType string, passed chan bool, UUID chan string) {
 	if tokenType == "access" {
@@ -50,7 +41,8 @@ func (logout *LogoutData) Verify(tokenString string, tokenType string, passed ch
 	}
 }
 
-func (login *LoginCredential) login() (int, string) {
+// Login method
+func (login *LoginCredential) Login() (int, string) {
 	hashedPassword := ""
 	username := ""
 	login.ID = strings.ToLower(login.ID)

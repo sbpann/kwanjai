@@ -16,38 +16,7 @@ type Board struct {
 	Description string `json:"description"`
 }
 
-type boardPerform interface {
-	createBoard() (int, string, *Board)
-	findBoard() (int, string, *Board)
-	updateBoard() (int, string, *Board)
-	deleteBoard() (int, string, *Board)
-}
-
-// NewBoard board method for interface with controller.
-func NewBoard(perform boardPerform) (int, string, *Board) {
-	status, message, board := perform.createBoard()
-	return status, message, board
-}
-
-// FindBoard board method for interface with controller.
-func FindBoard(perform boardPerform) (int, string, *Board) {
-	status, message, board := perform.findBoard()
-	return status, message, board
-}
-
-// UpdateBoard board method for interface with controller.
-func UpdateBoard(perform boardPerform) (int, string, *Board) {
-	status, message, board := perform.updateBoard()
-	return status, message, board
-}
-
-// DeleteBoard board method for interface with controller.
-func DeleteBoard(perform boardPerform) (int, string, *Board) {
-	status, message, board := perform.deleteBoard()
-	return status, message, board
-}
-
-func (board *Board) createBoard() (int, string, *Board) {
+func (board *Board) CreateBoard() (int, string, *Board) {
 	board.UUID = uuid.New().String()
 	_, err := libraries.FirestoreCreatedOrSet("boards", board.UUID, board)
 	if err != nil {
@@ -56,7 +25,7 @@ func (board *Board) createBoard() (int, string, *Board) {
 	return http.StatusCreated, "Created board.", board
 }
 
-func (board *Board) findBoard() (int, string, *Board) {
+func (board *Board) FindBoard() (int, string, *Board) {
 	if board.UUID == "" {
 		return http.StatusNotFound, "Board not found.", nil
 	}
@@ -68,16 +37,16 @@ func (board *Board) findBoard() (int, string, *Board) {
 	return http.StatusNotFound, "Board not found.", nil
 }
 
-func (board *Board) updateBoard() (int, string, *Board) {
-	_, err := libraries.FirestoreUpdateField("boards", board.UUID, "Name", board.Name)
-	_, err = libraries.FirestoreUpdateField("boards", board.UUID, "Description", board.Description)
+// UpdateBoard board method.
+func (board *Board) UpdateBoard(field string, value interface{}) (int, string, *Board) {
+	_, err := libraries.FirestoreUpdateField("boards", board.UUID, field, value)
 	if err != nil {
 		return http.StatusInternalServerError, err.Error(), nil
 	}
 	return http.StatusOK, "Updated sucessfully.", board
 }
 
-func (board *Board) deleteBoard() (int, string, *Board) {
+func (board *Board) DeleteBoard() (int, string, *Board) {
 	_, err := libraries.FirestoreDelete("boards", board.UUID)
 	if err != nil {
 		return http.StatusInternalServerError, err.Error(), nil

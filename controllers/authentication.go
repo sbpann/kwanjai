@@ -15,10 +15,10 @@ func Login() gin.HandlerFunc {
 		err := ginContext.ShouldBindJSON(login)
 		var status int
 		if err != nil {
-			ginContext.JSON(http.StatusBadRequest, gin.H{"message": "Login form is not valid."})
+			ginContext.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 			return
 		}
-		status, username := models.Login(login)
+		status, username := login.Login()
 		if status != http.StatusOK {
 			ginContext.JSON(status, gin.H{"message": username})
 			// If status != 200, error message is returned instead of username.
@@ -41,11 +41,11 @@ func Register() gin.HandlerFunc {
 		var message string
 		var user *models.User
 		if err != nil {
-			ginContext.JSON(http.StatusBadRequest, gin.H{"message": "Registration form is not valid."})
+			ginContext.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 			return
 		}
 		registerInfo.HashPassword()
-		status, message, user = models.Register(registerInfo)
+		status, message, user = registerInfo.Register()
 		if status != http.StatusOK {
 			ginContext.JSON(status, gin.H{"message": message})
 			return

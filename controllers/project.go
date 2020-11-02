@@ -2,11 +2,32 @@ package controllers
 
 import (
 	"kwanjai/helpers"
+	"kwanjai/libraries"
 	"kwanjai/models"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
+
+// AllProject endpoint
+func AllProject() gin.HandlerFunc {
+	return func(ginContext *gin.Context) {
+		username := helpers.GetUsername(ginContext)
+		searchProjects, err := libraries.FirestoreSearch("projects", "Members", "array-contains", username)
+		if err != nil {
+			ginContext.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+			return
+		}
+		allProjects := []*models.Project{}
+		for _, project := range searchProjects {
+			p := new(models.Project)
+			project.DataTo(p)
+			allProjects = append(allProjects, p)
+		}
+		ginContext.JSON(http.StatusBadRequest, gin.H{"projects": allProjects})
+		return
+	}
+}
 
 // NewProject endpoint
 func NewProject() gin.HandlerFunc {
@@ -16,10 +37,10 @@ func NewProject() gin.HandlerFunc {
 		err := ginContext.ShouldBindJSON(project)
 		project.User = username
 		if err != nil {
-			ginContext.JSON(http.StatusBadRequest, gin.H{"message": "Project name is required."})
+			ginContext.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 			return
 		}
-		status, message, project := models.NewProject(project)
+		status, message, project := project.CreateProject()
 		ginContext.JSON(status,
 			gin.H{
 				"message": message,
@@ -37,7 +58,7 @@ func FindProject() gin.HandlerFunc {
 			ginContext.JSON(http.StatusBadRequest, gin.H{"message": "Invalid UUID."})
 			return
 		}
-		status, message, project := models.FindProject(project)
+		status, message, project := project.FindProject()
 		ginContext.JSON(status,
 			gin.H{
 				"message": message,
@@ -58,7 +79,7 @@ func UpdateProject() gin.HandlerFunc {
 		}
 		copiedProject := new(models.Project)
 		copiedProject.UUID = project.UUID
-		status, message, _ := models.FindProject(copiedProject)
+		status, message, _ := copiedProject.FindProject()
 		if status != http.StatusOK {
 			ginContext.JSON(status,
 				gin.H{
@@ -71,7 +92,7 @@ func UpdateProject() gin.HandlerFunc {
 			return
 		}
 		project.User = copiedProject.User
-		status, message, project = models.UpdateProject(project)
+		status, message, project = project.UpdateProject()
 		ginContext.JSON(status,
 			gin.H{
 				"message": message,
@@ -92,7 +113,7 @@ func DeleteProject() gin.HandlerFunc {
 		}
 		copiedProject := new(models.Project)
 		copiedProject.UUID = project.UUID
-		status, message, _ := models.FindProject(copiedProject)
+		status, message, _ := copiedProject.FindProject()
 		if status != http.StatusOK {
 			ginContext.JSON(status,
 				gin.H{
@@ -104,7 +125,7 @@ func DeleteProject() gin.HandlerFunc {
 			ginContext.JSON(http.StatusForbidden, gin.H{"message": "You cannot perform this action."})
 			return
 		}
-		status, message, project = models.DeleteProject(project)
+		status, message, project = project.DeleteProject()
 		ginContext.JSON(status,
 			gin.H{
 				"message": message,

@@ -21,14 +21,9 @@ type User struct {
 	JoinedDate     time.Time `json:"joined_date"`
 }
 
-type userPerform interface {
-	createUser() (int, string, *User)
-	findUser() (int, string, *User)
-}
-
-// Register user method for interface with controller.
-func Register(perform userPerform) (int, string, *User) {
-	status, message, user := perform.createUser()
+// Register user method.
+func (user *User) Register() (int, string, *User) {
+	status, message, user := user.createUser()
 	if status != http.StatusCreated || user == nil {
 		return status, message, user
 	}
@@ -39,9 +34,9 @@ func Register(perform userPerform) (int, string, *User) {
 	return status, message, user
 }
 
-// Finduser user method for interface with controller.
-func Finduser(perform userPerform) (int, string, *User) {
-	status, message, user := perform.findUser()
+// Finduser user method.
+func (user *User) Finduser() (int, string, *User) {
+	status, message, user := user.findUser()
 	return status, message, user
 }
 
@@ -84,13 +79,6 @@ func (user *User) createUser() (int, string, *User) {
 	}
 	user.HashedPassword = ""
 	return http.StatusCreated, "User created successfully.", user
-}
-
-func (user *User) login() (int, string) {
-	login := new(LoginCredential)
-	login.ID = user.Username
-	login.Password = user.Password
-	return login.login()
 }
 
 // SendVerificationEmail method for user model.

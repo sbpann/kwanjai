@@ -25,7 +25,7 @@ func ResendVerifyEmail() gin.HandlerFunc {
 		ginContext.ShouldBind(verificationEmail)
 		user := new(models.User)
 		user.Email = verificationEmail.Email
-		status, message, user := models.Finduser(user)
+		status, message, user := user.Finduser()
 		if user == nil {
 			ginContext.JSON(status, gin.H{"message": message})
 			return

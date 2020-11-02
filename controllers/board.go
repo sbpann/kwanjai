@@ -9,6 +9,54 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// AllBoard endpoint
+func AllBoard() gin.HandlerFunc {
+	return func(ginContext *gin.Context) {
+		username := helpers.GetUsername(ginContext)
+		board := new(models.Board)
+		err := ginContext.ShouldBindJSON(board)
+		if board.Project == "" {
+			ginContext.JSON(http.StatusBadRequest, gin.H{"message": "Project UUID is reqired."})
+			return
+		}
+
+		// Check project membership
+		getProject, err := libraries.FirestoreFind("projects", board.Project)
+		if !getProject.Exists() {
+			ginContext.JSON(http.StatusNotFound, gin.H{"message": "Project not found."})
+			return
+		}
+		project := new(models.Project)
+		err = getProject.DataTo(project)
+		if err != nil {
+			ginContext.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+			return
+		}
+		_, found := libraries.Find(project.Members, username)
+		if !found {
+			ginContext.JSON(http.StatusForbidden, gin.H{"message": "You cannot perform this action."})
+			return
+		}
+		// end
+
+		searchBoards, err := libraries.FirestoreSearch("boards", "Project", "==", board.Project)
+		if err != nil {
+			ginContext.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+			return
+		}
+		allBoards := []*models.Board{}
+		for _, board := range searchBoards {
+			b := new(models.Board)
+			board.DataTo(b)
+			allBoards = append(allBoards, b)
+		}
+		ginContext.JSON(http.StatusOK,
+			gin.H{
+				"boards": allBoards,
+			})
+	}
+}
+
 // NewBoard endpoint
 func NewBoard() gin.HandlerFunc {
 	return func(ginContext *gin.Context) {
@@ -17,16 +65,17 @@ func NewBoard() gin.HandlerFunc {
 		err := ginContext.ShouldBindJSON(board)
 		board.User = username
 		if err != nil {
-			ginContext.JSON(http.StatusBadRequest, gin.H{"message": "Board name is required."})
+			ginContext.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 			return
 		}
-		// Check project owner
-		project := new(models.Project)
+
+		// Check project ownership
 		getProject, err := libraries.FirestoreFind("projects", board.Project)
 		if !getProject.Exists() {
 			ginContext.JSON(http.StatusNotFound, gin.H{"message": "Project not found."})
 			return
 		}
+		project := new(models.Project)
 		err = getProject.DataTo(project)
 		if err != nil {
 			ginContext.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
@@ -36,7 +85,7 @@ func NewBoard() gin.HandlerFunc {
 			ginContext.JSON(http.StatusForbidden, gin.H{"message": "You cannot perform this action."})
 			return
 		}
-		status, message, board := models.NewBoard(board)
+		status, message, board := board.CreateBoard()
 		ginContext.JSON(status,
 			gin.H{
 				"message": message,
@@ -54,7 +103,28 @@ func FindBoard() gin.HandlerFunc {
 			ginContext.JSON(http.StatusBadRequest, gin.H{"message": "Invalid UUID."})
 			return
 		}
-		status, message, board := models.FindBoard(board)
+
+		// Check project membership
+		username := helpers.GetUsername(ginContext)
+		getProject, err := libraries.FirestoreFind("projects", board.Project)
+		if !getProject.Exists() {
+			ginContext.JSON(http.StatusNotFound, gin.H{"message": "Project not found."})
+			return
+		}
+		project := new(models.Project)
+		err = getProject.DataTo(project)
+		if err != nil {
+			ginContext.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+			return
+		}
+		_, found := libraries.Find(project.Members, username)
+		if !found {
+			ginContext.JSON(http.StatusForbidden, gin.H{"message": "You cannot perform this action."})
+			return
+		}
+		// end
+
+		status, message, board := board.FindBoard()
 		ginContext.JSON(status,
 			gin.H{
 				"message": message,
@@ -73,9 +143,11 @@ func UpdateBoard() gin.HandlerFunc {
 			ginContext.JSON(http.StatusBadRequest, gin.H{"message": "Invalid UUID."})
 			return
 		}
+
+		// Check board ownership
 		copiedBoard := new(models.Board)
 		copiedBoard.UUID = board.UUID
-		status, message, _ := models.FindBoard(copiedBoard)
+		status, message, _ := copiedBoard.FindBoard()
 		if status != http.StatusOK {
 			ginContext.JSON(status,
 				gin.H{
@@ -87,8 +159,12 @@ func UpdateBoard() gin.HandlerFunc {
 			ginContext.JSON(http.StatusForbidden, gin.H{"message": "You cannot perform this action."})
 			return
 		}
+		// end
+
 		board.User = copiedBoard.User
-		status, message, board = models.UpdateBoard(board)
+		board.Project = copiedBoard.Project
+		status, message, board = board.UpdateBoard("Name", board.Name)
+		status, message, board = board.UpdateBoard("Description", board.Description)
 		ginContext.JSON(status,
 			gin.H{
 				"message": message,
@@ -107,9 +183,11 @@ func DeleteBoard() gin.HandlerFunc {
 			ginContext.JSON(http.StatusBadRequest, gin.H{"message": "Invalid UUID."})
 			return
 		}
+
+		// Check board ownership
 		copiedBoard := new(models.Board)
 		copiedBoard.UUID = board.UUID
-		status, message, _ := models.FindBoard(copiedBoard)
+		status, message, _ := copiedBoard.FindBoard()
 		if status != http.StatusOK {
 			ginContext.JSON(status,
 				gin.H{
@@ -121,7 +199,9 @@ func DeleteBoard() gin.HandlerFunc {
 			ginContext.JSON(http.StatusForbidden, gin.H{"message": "You cannot perform this action."})
 			return
 		}
-		status, message, board = models.DeleteBoard(board)
+		// end
+
+		status, message, board = board.DeleteBoard()
 		ginContext.JSON(status,
 			gin.H{
 				"message": message,
