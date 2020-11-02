@@ -18,13 +18,13 @@ func AllProject() gin.HandlerFunc {
 			ginContext.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 			return
 		}
+		project := new(models.Project)
 		allProjects := []*models.Project{}
-		for _, project := range searchProjects {
-			p := new(models.Project)
-			project.DataTo(p)
-			allProjects = append(allProjects, p)
+		for _, p := range searchProjects {
+			p.DataTo(project)
+			allProjects = append(allProjects, project)
 		}
-		ginContext.JSON(http.StatusBadRequest, gin.H{"projects": allProjects})
+		ginContext.JSON(http.StatusOK, gin.H{"projects": allProjects})
 		return
 	}
 }
@@ -87,7 +87,7 @@ func UpdateProject() gin.HandlerFunc {
 				})
 			return
 		}
-		if copiedProject.User != username || helpers.IsSuperUser(ginContext) {
+		if copiedProject.User != username {
 			ginContext.JSON(http.StatusForbidden, gin.H{"message": "You cannot perform this action."})
 			return
 		}
@@ -121,7 +121,7 @@ func DeleteProject() gin.HandlerFunc {
 				})
 			return
 		}
-		if copiedProject.User != username || helpers.IsSuperUser(ginContext) {
+		if copiedProject.User != username {
 			ginContext.JSON(http.StatusForbidden, gin.H{"message": "You cannot perform this action."})
 			return
 		}

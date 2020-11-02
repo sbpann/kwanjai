@@ -15,47 +15,27 @@ func AllPost() gin.HandlerFunc {
 	return func(ginContext *gin.Context) {
 		username := helpers.GetUsername(ginContext)
 		post := new(models.Post)
-		err := ginContext.ShouldBindJSON(post)
-		post.User = username
-		if err != nil {
-			ginContext.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		ginContext.ShouldBindJSON(post)
+		if post.Project == "" {
+			ginContext.JSON(http.StatusBadRequest, gin.H{"message": "Project UUID is reqired."})
 			return
 		}
 
-		// Check project membership
-		getBoard, err := libraries.FirestoreFind("boards", post.Board)
-		if !getBoard.Exists() {
-			ginContext.JSON(http.StatusNotFound, gin.H{"message": "Project not found."})
-			return
-		}
-		if err != nil {
-			ginContext.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
-			return
-		}
-		board := new(models.Board)
-		getBoard.DataTo(board)
-		project := new(models.Project)
-		getProject, _ := libraries.FirestoreFind("projects", board.Project) // board existence ensures no error.
-		getProject.DataTo(project)
-		_, found := libraries.Find(project.Members, username)
-		if !found {
-			ginContext.JSON(http.StatusForbidden, gin.H{"message": "You cannot perform this action."})
-			return
-		}
-		// end
-
-		searchPosts, err := libraries.FirestoreSearch("post", "Board", "==", post.Board)
+		searchPosts, err := libraries.FirestoreSearch("posts", "Project", "==", post.Project)
 		if err != nil {
 			ginContext.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 			return
 		}
 		allPosts := []*models.Post{}
-		for _, post := range searchPosts {
-			p := new(models.Post)
-			post.DataTo(p)
-			allPosts = append(allPosts, p)
+		for _, p := range searchPosts {
+			p.DataTo(post)
+			// check project membership
+			if helpers.IsProjectMember(username, post.Project) {
+				ginContext.JSON(http.StatusForbidden, gin.H{"message": "You cannot perform this action."})
+				return
+			}
+			allPosts = append(allPosts, post)
 		}
-
 		ginContext.JSON(http.StatusOK,
 			gin.H{
 				"posts": allPosts,
@@ -74,29 +54,24 @@ func NewPost() gin.HandlerFunc {
 			ginContext.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 			return
 		}
-
-		// Check project membership
 		getBoard, err := libraries.FirestoreFind("boards", post.Board)
-		if !getBoard.Exists() {
-			ginContext.JSON(http.StatusNotFound, gin.H{"message": "Project not found."})
-			return
-		}
 		if err != nil {
-			ginContext.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
-			return
+			ginContext.JSON(http.StatusInternalServerError, err.Error())
+		}
+		if !getBoard.Exists() {
+			ginContext.JSON(http.StatusNotFound, "Board not found.")
 		}
 		board := new(models.Board)
 		getBoard.DataTo(board)
-		project := new(models.Project)
-		getProject, _ := libraries.FirestoreFind("projects", board.Project) // board existence ensures no error.
-		getProject.DataTo(project)
-		_, found := libraries.Find(project.Members, username)
-		if !found {
+
+		// Check project membership
+		post.Project = board.Project
+		if !helpers.IsProjectMember(username, post.Project) {
 			ginContext.JSON(http.StatusForbidden, gin.H{"message": "You cannot perform this action."})
 			return
 		}
-		// end
 
+		post.Project = board.Project
 		status, message, post := post.CreatePost()
 		ginContext.JSON(status,
 			gin.H{
@@ -118,26 +93,10 @@ func FindPost() gin.HandlerFunc {
 		}
 
 		// Check project membership
-		getBoard, err := libraries.FirestoreFind("boards", post.Board)
-		if !getBoard.Exists() {
-			ginContext.JSON(http.StatusNotFound, gin.H{"message": "Project not found."})
-			return
-		}
-		if err != nil {
-			ginContext.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
-			return
-		}
-		board := new(models.Board)
-		getBoard.DataTo(board)
-		project := new(models.Project)
-		getProject, _ := libraries.FirestoreFind("projects", board.Project) // board existence ensures no error.
-		getProject.DataTo(project)
-		_, found := libraries.Find(project.Members, username)
-		if !found {
+		if !helpers.IsProjectMember(username, post.Project) {
 			ginContext.JSON(http.StatusForbidden, gin.H{"message": "You cannot perform this action."})
 			return
 		}
-		// end
 
 		status, message, post := post.FindPost()
 		ginContext.JSON(status,
@@ -160,30 +119,18 @@ func UpdatePost() gin.HandlerFunc {
 		}
 
 		// Check post ownership
-		copiedPost := new(models.Post)
-		copiedPost.UUID = post.UUID
-		status, message, _ := copiedPost.FindPost()
-		if status != http.StatusOK {
-			ginContext.JSON(status,
-				gin.H{
-					"message": message,
-				})
-			return
-		}
-		if copiedPost.User != username || helpers.IsSuperUser(ginContext) {
+		if !helpers.IsOwner(username, "post", post.UUID) {
 			ginContext.JSON(http.StatusForbidden, gin.H{"message": "You cannot perform this action."})
 			return
 		}
-		// end
 
-		post.User = copiedPost.User
-		post.Board = copiedPost.Board
-		status, message, post = post.UpdatePost("Title", post.Title)
+		status, message, post := post.UpdatePost("Title", post.Title)
 		status, message, post = post.UpdatePost("Body", post.Body)
 		status, message, post = post.UpdatePost("Completed", post.Completed)
 		status, message, post = post.UpdatePost("Urgent", post.Urgent)
 		status, message, post = post.UpdatePost("Body", post.Body)
 		status, message, post = post.UpdatePost("LastModified", time.Now().Truncate(time.Millisecond))
+		status, message, post = post.FindPost()
 		ginContext.JSON(status,
 			gin.H{
 				"message": message,
@@ -204,23 +151,12 @@ func DeletePost() gin.HandlerFunc {
 		}
 
 		// Check post ownership
-		copiedPost := new(models.Post)
-		copiedPost.UUID = post.UUID
-		status, message, _ := copiedPost.FindPost()
-		if status != http.StatusOK {
-			ginContext.JSON(status,
-				gin.H{
-					"message": message,
-				})
-			return
-		}
-		if copiedPost.User != username || helpers.IsSuperUser(ginContext) {
+		if !helpers.IsOwner(username, "posts", post.UUID) {
 			ginContext.JSON(http.StatusForbidden, gin.H{"message": "You cannot perform this action."})
 			return
 		}
-		// end
 
-		status, message, _ = post.DeletePost()
+		status, message, _ := post.DeletePost()
 		ginContext.JSON(status,
 			gin.H{
 				"message": message,

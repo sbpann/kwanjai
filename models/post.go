@@ -12,6 +12,7 @@ import (
 type Post struct {
 	UUID         string     `json:"uuid"`
 	Board        string     `json:"board" binding:"required"`
+	Project      string     `json:"project"` // It's an advantage for checking project membership.
 	User         string     `json:"username"`
 	Title        string     `json:"title" binding:"required"`
 	Body         string     `json:"body" binding:"required"`
@@ -35,8 +36,8 @@ type Comment struct {
 func (post *Post) initialize() {
 	post.UUID = uuid.New().String()
 	post.People = []string{}
-	now := time.Now().Truncate(time.Millisecond)
 	post.Comments = []*Comment{}
+	now := time.Now().Truncate(time.Millisecond)
 	post.AddedDate = now
 	post.LastModified = now
 }
