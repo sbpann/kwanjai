@@ -83,5 +83,9 @@ func getServer(mode string) *gin.Engine {
 func main() {
 	setupServer()
 	ginEngine := getServer(os.Getenv("GIN_MODE"))
+	if os.Getenv("GIN_MODE") == "release" {
+		ginEngine.Run()
+		return
+	}
 	ginEngine.Run(":7777")
 }
