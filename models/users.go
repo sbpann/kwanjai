@@ -97,7 +97,7 @@ func (user *User) login() (int, string) {
 func (user *User) SendVerificationEmail() (int, string) {
 	email := new(VerificationEmail)
 	email.Initialize(user.Username, user.Email)
-	_, err := libraries.FirestoreCreatedOrSet("verificationemail", email.UUID, email)
+	_, err := libraries.FirestoreCreatedOrSet("verificationEmail", email.UUID, email)
 	if err != nil {
 		return http.StatusInternalServerError, err.Error()
 	}

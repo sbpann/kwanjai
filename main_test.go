@@ -18,8 +18,12 @@ func clearTestUser1(t *testing.T) {
 	if getUser.Exists() {
 		_, err = libraries.FirestoreDelete("users", "test1")
 		assert.Equal(t, nil, err)
-		_, err = libraries.FirestoreDelete("tokenUUID", "test1")
+		getToken, err := libraries.FirestoreSearch("tokenUUID", "user", "==", "test1")
 		assert.Equal(t, nil, err)
+		for _, token := range getToken {
+			_, err = libraries.FirestoreDelete("tokenUUID", token.Ref.ID)
+			assert.Equal(t, nil, err)
+		}
 	}
 	getEmail, err := libraries.FirestoreSearch("users", "Email", "==", "test1@example.com")
 	assert.Equal(t, nil, err)
@@ -28,17 +32,26 @@ func clearTestUser1(t *testing.T) {
 		assert.Equal(t, nil, err)
 		_, err = libraries.FirestoreDelete("tokenUUID", getEmail[0].Data()["Username"].(string))
 		assert.Equal(t, nil, err)
+		getToken, err := libraries.FirestoreSearch("tokenUUID", "user", "==", getEmail[0].Data()["Username"])
+		assert.Equal(t, nil, err)
+		for _, token := range getToken {
+			_, err = libraries.FirestoreDelete("tokenUUID", token.Ref.ID)
+			assert.Equal(t, nil, err)
+		}
 	}
 }
 
 func clearTestUser2(t *testing.T) {
-
 	getUser, err := libraries.FirestoreFind("users", "test2")
 	if getUser.Exists() {
 		_, err = libraries.FirestoreDelete("users", "test2")
 		assert.Equal(t, nil, err)
-		_, err = libraries.FirestoreDelete("tokenUUID", "test2")
+		getToken, err := libraries.FirestoreSearch("tokenUUID", "user", "==", "test2")
 		assert.Equal(t, nil, err)
+		for _, token := range getToken {
+			_, err = libraries.FirestoreDelete("tokenUUID", token.Ref.ID)
+			assert.Equal(t, nil, err)
+		}
 	}
 	getEmail, err := libraries.FirestoreSearch("users", "Email", "==", "test2@example.com")
 	assert.Equal(t, nil, err)
@@ -47,12 +60,22 @@ func clearTestUser2(t *testing.T) {
 		assert.Equal(t, nil, err)
 		_, err = libraries.FirestoreDelete("tokenUUID", getEmail[0].Data()["Username"].(string))
 		assert.Equal(t, nil, err)
+		getToken, err := libraries.FirestoreSearch("tokenUUID", "user", "==", getEmail[0].Data()["Username"])
+		assert.Equal(t, nil, err)
+		for _, token := range getToken {
+			_, err = libraries.FirestoreDelete("tokenUUID", token.Ref.ID)
+			assert.Equal(t, nil, err)
+		}
 	}
 }
 
-func TestRegisterWithAGoodInfo(t *testing.T) {
+func TestSetup(t *testing.T) {
 	setupServer()
 	clearTestUser1(t)
+	clearTestUser2(t)
+}
+
+func TestRegisterWithAGoodInfo(t *testing.T) {
 
 	registerInfo := new(models.User)
 	registerInfo.Username = "test1"
@@ -70,9 +93,7 @@ func TestRegisterWithAGoodInfo(t *testing.T) {
 }
 
 func TestRigesterLogoutLoginLogout(t *testing.T) {
-	setupServer()
 	clearTestUser1(t)
-
 	// register
 	registerInfo := new(models.User)
 	registerInfo.Username = "test1"
@@ -125,7 +146,7 @@ func TestRigesterLogoutLoginLogout(t *testing.T) {
 }
 
 func TestRegisterWithBadEmailFormat(t *testing.T) {
-	setupServer()
+
 	registerInfo := new(models.User)
 	registerInfo.Username = "john"
 	registerInfo.Email = "bad-email"
@@ -138,7 +159,7 @@ func TestRegisterWithBadEmailFormat(t *testing.T) {
 }
 
 func TestRegisterWithReserverdUsername(t *testing.T) {
-	setupServer()
+
 	registerInfo := new(models.User)
 	registerInfo.Username = "anonymous"
 	registerInfo.Email = "anonymous@email.com"
@@ -151,7 +172,7 @@ func TestRegisterWithReserverdUsername(t *testing.T) {
 }
 
 func TestLoginWithInvalidCredential(t *testing.T) {
-	setupServer()
+
 	login := new(models.LoginCredential)
 	login.ID = "anonymous"
 	login.Password = "anonymouspassword"
@@ -164,7 +185,7 @@ func TestLoginWithInvalidCredential(t *testing.T) {
 }
 
 func TestVerifyEmailWithBadLink(t *testing.T) {
-	setupServer()
+
 	writer := httptest.NewRecorder()
 	request, _ := http.NewRequest("POST", "/verify_email/badlink", nil)
 	getServer("test").ServeHTTP(writer, request)
@@ -173,7 +194,7 @@ func TestVerifyEmailWithBadLink(t *testing.T) {
 }
 
 func TestUnauthorizedProjectAction(t *testing.T) {
-	setupServer()
+
 	endpoints := map[string]string{
 		"/project/new":    "POST",
 		"/project/find":   "POST",
@@ -189,7 +210,6 @@ func TestUnauthorizedProjectAction(t *testing.T) {
 }
 
 func TestCreateBoardInNotOwingProject(t *testing.T) {
-	setupServer()
 	clearTestUser1(t)
 	clearTestUser2(t)
 	var response map[string]interface{}
@@ -244,9 +264,6 @@ func TestCreateBoardInNotOwingProject(t *testing.T) {
 	request.Header.Set("Authorization", token2.AccessToken)
 	getServer("test").ServeHTTP(writer, request)
 	assert.Equal(t, http.StatusForbidden, writer.Code)
-
-	clearTestUser1(t)
-	clearTestUser2(t)
 
 	_, err := libraries.FirestoreDelete("projects", createdProjectUUID)
 	assert.Equal(t, nil, err)

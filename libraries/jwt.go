@@ -72,23 +72,23 @@ func CreateToken(tokenType string, username string) (string, error) {
 	}
 
 	tokenUUID = uuid.New().String()
+	now := time.Now().Truncate(time.Millisecond)
 	if err != nil {
 		return "Cannot create token uuid.", err
 	}
-	getUserToken, err := FirestoreFind("tokenUUID", username)
-	if !getUserToken.Exists() {
-		_, err = FirestoreCreatedOrSet("tokenUUID", username, map[string]interface{}{tokenUUID: tokenType})
-	}
-	_, err = FirestoreUpdateField("tokenUUID", username, tokenUUID, tokenUUID)
+	_, err = FirestoreCreatedOrSet("tokenUUID", tokenUUID,
+		map[string]interface{}{
+			"user":   username,
+			"expire": now,
+		})
 	if err != nil {
 		return "Cannot create token uuid.", err
 	}
-
 	claims := &customClaims{
 		username,
 		tokenUUID,
 		&jwt.StandardClaims{
-			ExpiresAt: time.Now().Add(lifetime).Unix(),
+			ExpiresAt: now.Add(lifetime).Unix(),
 		},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -128,16 +128,13 @@ func VerifyToken(tokenString string, tokenType string) (bool, string, string, er
 	username, _, err := GetTokenPayload(tokenString, tokenType, "user")
 	if err != nil {
 		if err.Error() == "Token is expired" {
-			FirestoreDeleteField("tokenUUID", username, tokenUUID)
+			FirestoreDelete("tokenUUID", tokenUUID)
 		}
 		return false, "anonymous", "", err
 	}
-	uuidVerification, err := FirestoreFind("tokenUUID", username)
+	uuidVerification, err := FirestoreFind("tokenUUID", tokenUUID)
 	if !uuidVerification.Exists() {
 		return false, "anonymous", "", err
-	}
-	if uuidVerification.Data()[tokenUUID] == nil {
-		return false, "anonymous", "", errors.New("token is not valid")
 	}
 	if valid {
 		return true, username, tokenUUID, nil

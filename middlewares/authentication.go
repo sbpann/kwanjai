@@ -15,6 +15,7 @@ import (
 func JWTAuthorization() gin.HandlerFunc {
 	return func(ginContext *gin.Context) {
 		user := new(models.User)
+		// Todo: add Bearer prefix
 		passed, username, _, err := libraries.VerifyToken(ginContext.Request.Header.Get("Authorization"), "access")
 		if !passed {
 			user.MakeAnonymous()

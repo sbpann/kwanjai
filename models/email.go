@@ -33,33 +33,23 @@ func (email *VerificationEmail) Initialize(user string, emailAddress string) {
 	email.ExpiredDate = time.Now().Add(config.EmailVerficationLifetime)
 }
 
-// smtpServer data.
-type smtpServer struct {
-	host string
-	port string
-}
-
-func (s *smtpServer) address() string {
-	return s.host + ":" + s.port
-}
-
 // Send method for VerificationEmail object.
 func (email *VerificationEmail) Send() (int, string) {
 	// Sender data.
 	from := "surus.d6101@gmail.com"
 	password := config.EmailServicePassword
 	to := []string{email.Email}
-	smtpServer := smtpServer{host: "smtp.gmail.com", port: "587"}
 	verificationLink := fmt.Sprintf("%v/verify_email/%v/", config.FrontendURL, email.UUID)
-	message := fmt.Sprintf("To: %v\r\n"+
-		"Subject: verification email.\r\n"+
+	message := fmt.Sprintf("From: Kwanjai Admin <surus.d6101@gmail.com>\r\n"+
+		"To: %v\r\n"+
+		"Subject: Verification email.\r\n"+
 		"\r\n"+
 		"Hi %v.\r\n"+
 		"Please verify your email using following link.\r\n"+
 		"%v\r\n"+
 		"Your verification code is: %v\r\n", to[0], email.User, verificationLink, email.Key)
-	auth := smtp.PlainAuth("", from, password, smtpServer.host)
-	err := smtp.SendMail(smtpServer.address(), auth, from, to, []byte(message))
+	auth := smtp.PlainAuth("", from, password, "smtp.gmail.com")
+	err := smtp.SendMail("smtp.gmail.com:587", auth, from, to, []byte(message))
 	if err != nil {
 		return http.StatusInternalServerError, err.Error()
 	}
@@ -73,7 +63,7 @@ func (email *VerificationEmail) Verify() (int, string) {
 	if email.UUID == "" {
 		return http.StatusBadRequest, "Bad verification link."
 	}
-	getEmail, err := libraries.FirestoreFind("verificationemail", email.UUID)
+	getEmail, err := libraries.FirestoreFind("verificationEmail", email.UUID)
 	if !getEmail.Exists() {
 		if err != nil {
 			emailPath := getEmail.Ref.Path
@@ -91,7 +81,7 @@ func (email *VerificationEmail) Verify() (int, string) {
 	expriredDate := verificationEmail.ExpiredDate
 	exprired := now.After(expriredDate)
 	if exprired {
-		_, err = libraries.FirestoreDelete("verificationemail", email.UUID)
+		_, err = libraries.FirestoreDelete("verificationEmail", email.UUID)
 		if err != nil {
 			return http.StatusInternalServerError, err.Error()
 		}
@@ -99,7 +89,7 @@ func (email *VerificationEmail) Verify() (int, string) {
 	}
 	if email.Key == verificationEmail.Key {
 		_, err = libraries.FirestoreUpdateField("users", verificationEmail.User, "IsVerified", true)
-		_, err = libraries.FirestoreDelete("verificationemail", email.UUID)
+		_, err = libraries.FirestoreDelete("verificationEmail", email.UUID)
 		if err != nil {
 			return http.StatusInternalServerError, err.Error()
 		}

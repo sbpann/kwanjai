@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"kwanjai/helpers"
 	"kwanjai/libraries"
 	"kwanjai/models"
 	"net/http"
@@ -78,6 +77,7 @@ func Logout() gin.HandlerFunc {
 		logout := new(models.LogoutData)
 		token := new(libraries.Token)
 		ginContext.ShouldBindJSON(token)
+		// Todo: add Bearer prefix
 		token.AccessToken = ginContext.Request.Header.Get("Authorization")
 		if token.RefreshToken == "" {
 			ginContext.JSON(http.StatusBadRequest, gin.H{"message": "No refresh token provied."})
@@ -94,8 +94,8 @@ func Logout() gin.HandlerFunc {
 			ginContext.JSON(http.StatusUnauthorized, gin.H{"message": "Token verification failed."})
 			return
 		}
-		go libraries.FirestoreDeleteField("tokenUUID", helpers.GetUsername(ginContext), <-accessTokenUUID)
-		go libraries.FirestoreDeleteField("tokenUUID", helpers.GetUsername(ginContext), <-refreshTokenUUID)
+		go libraries.FirestoreDelete("tokenUUID", <-accessTokenUUID)
+		go libraries.FirestoreDelete("tokenUUID", <-refreshTokenUUID)
 
 		ginContext.JSON(200, gin.H{"message": "User logged out successfully."})
 	}
@@ -106,6 +106,7 @@ func RefreshToken() gin.HandlerFunc {
 	return func(ginContext *gin.Context) {
 		token := new(libraries.Token)
 		ginContext.ShouldBind(token)
+		// Todo: add Bearer prefix
 		token.AccessToken = ginContext.Request.Header.Get("Authorization")
 		if token.RefreshToken == "" {
 			ginContext.JSON(http.StatusBadRequest, gin.H{"message": "No refresh token provied."})
@@ -126,9 +127,9 @@ func RefreshToken() gin.HandlerFunc {
 			ginContext.JSON(status, gin.H{"message": err.Error()})
 			return
 		}
-		_, user, tokenUUID, err := libraries.VerifyToken(token.AccessToken, "access") // if token is expried here. it got delete.
-		if user != "anonymous" && err == nil {                                        // which means token is still valid.
-			_, err = libraries.FirestoreDeleteField("tokenUUID", user, tokenUUID)
+		_, user, tokenUUID, err := libraries.VerifyToken(token.AccessToken, "access") // if token is expried here, it's got delete.
+		if user != "anonymous" && err == nil {                                        // user != "anonymous" means token is still valid.
+			_, err = libraries.FirestoreDelete("tokenUUID", tokenUUID)
 			if err != nil {
 				ginContext.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 				return
