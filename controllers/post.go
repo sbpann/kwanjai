@@ -128,7 +128,7 @@ func UpdatePost() gin.HandlerFunc {
 		status, message, post = post.UpdatePost("Body", post.Body)
 		status, message, post = post.UpdatePost("Completed", post.Completed)
 		status, message, post = post.UpdatePost("Urgent", post.Urgent)
-		status, message, post = post.UpdatePost("Body", post.Body)
+		status, message, post = post.UpdatePost("People", post.People)
 		status, message, post = post.UpdatePost("LastModified", time.Now().Truncate(time.Millisecond))
 		status, message, post = post.FindPost()
 		ginContext.JSON(status,

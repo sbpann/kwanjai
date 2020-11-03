@@ -19,6 +19,7 @@ type User struct {
 	IsVerified     bool      `json:"is_verified"`
 	IsActive       bool      `json:"is_active"`
 	JoinedDate     time.Time `json:"joined_date"`
+	ProfilePicture string    `json:"profile_picture"`
 }
 
 // Register user method.
@@ -104,6 +105,7 @@ func (user *User) initialize() {
 	user.IsSuperUser = false
 	user.IsVerified = false
 	user.JoinedDate = time.Now()
+	user.ProfilePicture = "https://storage.googleapis.com/kwanjai-a3803.appspot.com/anonymous.png"
 }
 
 // MakeAnonymous user

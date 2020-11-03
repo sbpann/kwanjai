@@ -14,5 +14,4 @@ ENV GIN_MODE=release
 RUN apk --no-cache add ca-certificates
 WORKDIR /app
 COPY --from=0 /go/src/github.com/pistex/kwanjai/app .
-COPY --from=0 /go/src/github.com/pistex/kwanjai/static ./static
 CMD ["./app"]  

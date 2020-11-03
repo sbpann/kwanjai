@@ -11,6 +11,7 @@ var (
 	BaseDirectory                string
 	FirebaseProjectID            string
 	FrontendURL                  string
+	BackendURL                   string
 	EmailServicePassword         string
 	EmailVerficationLifetime     time.Duration
 	JWTAccessTokenSecretKey      string

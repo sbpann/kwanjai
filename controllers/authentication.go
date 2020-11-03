@@ -1,12 +1,19 @@
 package controllers
 
 import (
+	"kwanjai/helpers"
 	"kwanjai/libraries"
 	"kwanjai/models"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
+
+type passwordUpdate struct {
+	OldPassword  string `json:"old_password" binding:"required,min=8"`
+	NewPassword1 string `json:"new_password1" binding:"required,min=8"`
+	NewPassword2 string `json:"new_password2" binding:"required,min=8"`
+}
 
 // Login endpoint
 func Login() gin.HandlerFunc {
@@ -141,5 +148,21 @@ func RefreshToken() gin.HandlerFunc {
 			"user":  user,
 			"token": token,
 		})
+	}
+}
+
+func PasswordUpdate() gin.HandlerFunc {
+	return func(ginContext *gin.Context) {
+		passwordForm := new(passwordUpdate)
+		if err := ginContext.ShouldBindJSON(passwordForm); err != nil {
+			ginContext.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		}
+		if passwordForm.NewPassword1 != passwordForm.NewPassword2 {
+			ginContext.JSON(http.StatusBadRequest, gin.H{"message": "Password confrimation failed."})
+		}
+		username := helpers.GetUsername(ginContext)
+		newPassword, _ := libraries.HashPassword(passwordForm.NewPassword1)
+		libraries.FirestoreUpdateField("users", username, "HashedPassword", newPassword)
+		ginContext.JSON(http.StatusOK, gin.H{"message": "Password updated."})
 	}
 }

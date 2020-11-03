@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	_ "image/jpeg"
+	_ "image/png"
 	"kwanjai/config"
 	"kwanjai/controllers"
 	"kwanjai/libraries"
@@ -22,6 +24,7 @@ func setupServer() {
 	libraries.InitializeGCP() // BaseDirectory need to be set before initialization.
 	config.Context = context.Background()
 	config.FrontendURL = "http://localhost:8080"
+	config.BackendURL = "http://localhost:8080"
 	config.FirebaseProjectID = "kwanjai-a3803"
 	config.DefaultAuthenticationBackend = middlewares.JWTAuthorization()
 	config.EmailServicePassword, err = libraries.AccessSecretVersion("projects/978676563951/secrets/EmailServicePassword/versions/1")
@@ -47,7 +50,6 @@ func getServer(mode string) *gin.Engine {
 	}
 	ginEngine := gin.Default()
 	ginEngine.Use(config.DefaultAuthenticationBackend)
-	ginEngine.StaticFile("/media/default_profile_picture.png", "./static/media/default_profile_picture.png")
 	ginEngine.POST("/login", controllers.Login())
 	ginEngine.POST("/register", controllers.Register())
 	ginEngine.POST("/logout", middlewares.AuthenticatedOnly(), controllers.Logout())
@@ -93,5 +95,5 @@ func main() {
 		ginEngine.Run()
 		return
 	}
-	ginEngine.Run(":7777")
+	ginEngine.Run()
 }
