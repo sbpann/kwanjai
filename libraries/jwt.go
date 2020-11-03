@@ -73,16 +73,14 @@ func CreateToken(tokenType string, username string) (string, error) {
 
 	tokenUUID = uuid.New().String()
 	now := time.Now().Truncate(time.Millisecond)
-	if err != nil {
-		return "Cannot create token uuid.", err
-	}
+
 	_, err = FirestoreCreatedOrSet("tokenUUID", tokenUUID,
 		map[string]interface{}{
 			"user":   username,
 			"expire": now,
 		})
 	if err != nil {
-		return "Cannot create token uuid.", err
+		return "Cannot store token data.", err
 	}
 	claims := &customClaims{
 		username,

@@ -1,10 +1,14 @@
 package libraries
 
 import (
+	"fmt"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/dgrijalva/jwt-go"
 	"github.com/go-playground/assert/v2"
+	"github.com/google/uuid"
 )
 
 func TestVerifyNonTokenText(t *testing.T) {
@@ -22,4 +26,25 @@ func TestVerifyInvalidSignature(t *testing.T) {
 	assert.Equal(t, err.Error(), "signature is invalid")
 	_, _, err = GetTokenPayload("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.e30.Et9HFtf9R3GEMA0IICOfFMVXY7kkTX1wr4qCyhIf58U", "refresh", "")
 	assert.Equal(t, err.Error(), "signature is invalid")
+}
+
+func TestExpiredToken(t *testing.T) {
+	claims := &customClaims{
+		"test",
+		uuid.New().String(),
+		&jwt.StandardClaims{
+			ExpiresAt: time.Now().Add(1 * time.Second).Unix(),
+		},
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	signedToken, err := token.SignedString([]byte("secret"))
+	assert.Equal(t, err, nil)
+	time.Sleep(2 * time.Second)
+	_, err = jwt.Parse(signedToken, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
+		}
+		return []byte("secret"), nil
+	})
+	assert.Equal(t, err.Error(), "Token is expired")
 }
