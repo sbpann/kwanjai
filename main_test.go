@@ -314,14 +314,14 @@ func TestCreateBoard(t *testing.T) {
 	request, _ = http.NewRequest("POST", "/board/new", bytes.NewBuffer([]byte(b)))
 	request.Header.Set("Authorization", token2.AccessToken)
 	getServer("test").ServeHTTP(writer, request)
-	assert.Equal(t, http.StatusForbidden, writer.Code) // shoud not pass.
+	assert.Equal(t, http.StatusForbidden, writer.Code) // should fail.
 
 	// user test1 try to create board under project of user test1.
 	writer = httptest.NewRecorder()
 	request, _ = http.NewRequest("POST", "/board/new", bytes.NewBuffer([]byte(b)))
 	request.Header.Set("Authorization", token1.AccessToken)
 	getServer("test").ServeHTTP(writer, request)
-	assert.Equal(t, http.StatusCreated, writer.Code) // shoud pass.
+	assert.Equal(t, http.StatusCreated, writer.Code) // should pass.
 	json.Unmarshal([]byte(writer.Body.String()), &response)
 	createdBoardtUUID := response["board"].(map[string]interface{})["uuid"].(string)
 
@@ -331,7 +331,7 @@ func TestCreateBoard(t *testing.T) {
 	assert.Equal(t, nil, err)
 }
 
-func TestCreatePost(t *testing.T) {
+func TestCreateAndDeletePost(t *testing.T) {
 	clearTestUser1(t)
 	clearTestUser2(t)
 	var response map[string]interface{}
@@ -350,7 +350,7 @@ func TestCreatePost(t *testing.T) {
 	token1 := new(libraries.Token)
 	token1.AccessToken = response["token"].(map[string]interface{})["access_token"].(string)
 
-	// created project by user test1
+	// Created project
 	project := new(models.Project)
 	project.Name = "My New Project"
 	b, _ = json.Marshal(project)
@@ -362,7 +362,7 @@ func TestCreatePost(t *testing.T) {
 	json.Unmarshal([]byte(writer.Body.String()), &response)
 	createdProjectUUID := response["project"].(map[string]interface{})["uuid"].(string)
 
-	// user test1 try to create board under project of user test1.
+	// Created board
 	board := new(models.Board)
 	board.Name = "My new board"
 	board.Project = createdProjectUUID
@@ -371,11 +371,11 @@ func TestCreatePost(t *testing.T) {
 	request, _ = http.NewRequest("POST", "/board/new", bytes.NewBuffer([]byte(b)))
 	request.Header.Set("Authorization", token1.AccessToken)
 	getServer("test").ServeHTTP(writer, request)
-	assert.Equal(t, http.StatusCreated, writer.Code) // shoud pass.
+	assert.Equal(t, http.StatusCreated, writer.Code) // should pass.
 	json.Unmarshal([]byte(writer.Body.String()), &response)
 	createdBoardtUUID := response["board"].(map[string]interface{})["uuid"].(string)
 
-	// user test1 try to created post under project of user test1.
+	// Created post
 	post := new(models.Post)
 	post.Board = createdBoardtUUID
 	post.Title = "My post"
@@ -385,7 +385,7 @@ func TestCreatePost(t *testing.T) {
 	request, _ = http.NewRequest("POST", "/post/new", bytes.NewBuffer([]byte(b)))
 	request.Header.Set("Authorization", token1.AccessToken)
 	getServer("test").ServeHTTP(writer, request)
-	assert.Equal(t, http.StatusCreated, writer.Code) // shoud pass.
+	assert.Equal(t, http.StatusCreated, writer.Code) // should pass.
 	json.Unmarshal([]byte(writer.Body.String()), &response)
 	createdPostUUID := response["post"].(map[string]interface{})["uuid"].(string)
 
@@ -403,15 +403,127 @@ func TestCreatePost(t *testing.T) {
 	token2 := new(libraries.Token)
 	token2.AccessToken = response["token"].(map[string]interface{})["access_token"].(string)
 
-	// user test2 try to created post under project of user test1 (not member.)
+	// user test2 try to delete post created by user 1.
+	post.UUID = createdPostUUID
+	b, _ = json.Marshal(post)
+	writer = httptest.NewRecorder()
+	request, _ = http.NewRequest("DELETE", "/post/delete", bytes.NewBuffer([]byte(b)))
+	request.Header.Set("Authorization", token2.AccessToken)
+	getServer("test").ServeHTTP(writer, request)
+	assert.Equal(t, http.StatusForbidden, writer.Code) // should fail.
+
+	// user test1 try to delete post created by user 1.
+	writer = httptest.NewRecorder()
+	request, _ = http.NewRequest("DELETE", "/post/delete", bytes.NewBuffer([]byte(b)))
+	request.Header.Set("Authorization", token1.AccessToken)
+	getServer("test").ServeHTTP(writer, request)
+	assert.Equal(t, http.StatusOK, writer.Code) // should pass.
+
+	_, err := libraries.FirestoreDelete("projects", createdProjectUUID)
+	assert.Equal(t, nil, err)
+	_, err = libraries.FirestoreDelete("boards", createdBoardtUUID)
+	assert.Equal(t, nil, err)
+}
+
+func TestCreateAndDeleteComment(t *testing.T) {
+	clearTestUser1(t)
+	clearTestUser2(t)
+	var response map[string]interface{}
+
+	// register1
+	registerInfo := new(models.User)
+	registerInfo.Username = "test1"
+	registerInfo.Email = "test1@example.com"
+	registerInfo.Password = "test1password"
+	b, _ := json.Marshal(registerInfo)
+	writer := httptest.NewRecorder()
+	request, _ := http.NewRequest("POST", "/register", bytes.NewBuffer([]byte(b)))
+	getServer("test").ServeHTTP(writer, request)
+	assert.Equal(t, http.StatusOK, writer.Code)
+	json.Unmarshal([]byte(writer.Body.String()), &response)
+	token1 := new(libraries.Token)
+	token1.AccessToken = response["token"].(map[string]interface{})["access_token"].(string)
+
+	// Created project
+	project := new(models.Project)
+	project.Name = "My New Project"
+	b, _ = json.Marshal(project)
+	writer = httptest.NewRecorder()
+	request, _ = http.NewRequest("POST", "/project/new", bytes.NewBuffer([]byte(b)))
+	request.Header.Set("Authorization", token1.AccessToken)
+	getServer("test").ServeHTTP(writer, request)
+	assert.Equal(t, http.StatusCreated, writer.Code)
+	json.Unmarshal([]byte(writer.Body.String()), &response)
+	createdProjectUUID := response["project"].(map[string]interface{})["uuid"].(string)
+
+	// Created board
+	board := new(models.Board)
+	board.Name = "My new board"
+	board.Project = createdProjectUUID
+	b, _ = json.Marshal(board)
+	writer = httptest.NewRecorder()
+	request, _ = http.NewRequest("POST", "/board/new", bytes.NewBuffer([]byte(b)))
+	request.Header.Set("Authorization", token1.AccessToken)
+	getServer("test").ServeHTTP(writer, request)
+	assert.Equal(t, http.StatusCreated, writer.Code) // should pass.
+	json.Unmarshal([]byte(writer.Body.String()), &response)
+	createdBoardtUUID := response["board"].(map[string]interface{})["uuid"].(string)
+
+	// Created post
+	post := new(models.Post)
+	post.Board = createdBoardtUUID
+	post.Title = "My post"
+	post.Body = "My this post is created for testing."
 	b, _ = json.Marshal(post)
 	writer = httptest.NewRecorder()
 	request, _ = http.NewRequest("POST", "/post/new", bytes.NewBuffer([]byte(b)))
+	request.Header.Set("Authorization", token1.AccessToken)
+	getServer("test").ServeHTTP(writer, request)
+	assert.Equal(t, http.StatusCreated, writer.Code) // should pass.
+	json.Unmarshal([]byte(writer.Body.String()), &response)
+	createdPostUUID := response["post"].(map[string]interface{})["uuid"].(string)
+	post.UUID = createdPostUUID
+
+	// Create comment by user test1
+	post.Comments = append(post.Comments, &models.Comment{Body: "my comment"})
+	b, _ = json.Marshal(post)
+	writer = httptest.NewRecorder()
+	request, _ = http.NewRequest("POST", "/post/comment/new", bytes.NewBuffer([]byte(b)))
+	request.Header.Set("Authorization", token1.AccessToken)
+	getServer("test").ServeHTTP(writer, request)
+	assert.Equal(t, http.StatusCreated, writer.Code) // should pass.
+	json.Unmarshal([]byte(writer.Body.String()), &response)
+	createdCommentUUID := response["post"].(map[string]interface{})["comments"].([]interface{})[0].(map[string]interface{})["uuid"].(string)
+	post.Comments[0].UUID = createdCommentUUID
+
+	// register2
+	registerInfo = new(models.User)
+	registerInfo.Username = "test2"
+	registerInfo.Email = "test2@example.com"
+	registerInfo.Password = "test2password"
+	b, _ = json.Marshal(registerInfo)
+	writer = httptest.NewRecorder()
+	request, _ = http.NewRequest("POST", "/register", bytes.NewBuffer([]byte(b)))
+	getServer("test").ServeHTTP(writer, request)
+	assert.Equal(t, http.StatusOK, writer.Code)
+	json.Unmarshal([]byte(writer.Body.String()), &response)
+	token2 := new(libraries.Token)
+	token2.AccessToken = response["token"].(map[string]interface{})["access_token"].(string)
+
+	// user2 try to delete commented by user1
+	b, _ = json.Marshal(post)
+	writer = httptest.NewRecorder()
+	request, _ = http.NewRequest("DELETE", "/post/comment/delete", bytes.NewBuffer([]byte(b)))
 	request.Header.Set("Authorization", token2.AccessToken)
 	getServer("test").ServeHTTP(writer, request)
-	assert.Equal(t, http.StatusForbidden, writer.Code) // shoud not pass.
-	json.Unmarshal([]byte(writer.Body.String()), &response)
-	createdPostUUID = response["post"].(map[string]interface{})["uuid"].(string)
+	assert.Equal(t, http.StatusForbidden, writer.Code) // should fail.
+
+	// user1 try to delete commented by user1
+	writer = httptest.NewRecorder()
+	request, _ = http.NewRequest("DELETE", "/post/comment/delete", bytes.NewBuffer([]byte(b)))
+	request.Header.Set("Authorization", token1.AccessToken)
+	getServer("test").ServeHTTP(writer, request)
+	assert.Equal(t, http.StatusOK, writer.Code) // should pass.
 
 	_, err := libraries.FirestoreDelete("projects", createdProjectUUID)
 	assert.Equal(t, nil, err)

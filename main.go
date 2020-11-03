@@ -79,9 +79,9 @@ func getServer(mode string) *gin.Engine {
 		post.POST("/new", controllers.NewPost())
 		post.PATCH("/find", controllers.FindPost())
 		post.DELETE("/delete", controllers.DeletePost())
-		post.POST("/comments/new", controllers.NewComment())
-		post.PATCH("/comments/update", controllers.UpdateComment())
-		post.DELETE("/comments/delete", controllers.DeleteComment())
+		post.POST("/comment/new", controllers.NewComment())
+		post.PATCH("/comment/update", controllers.UpdateComment())
+		post.DELETE("/comment/delete", controllers.DeleteComment())
 	}
 	return ginEngine
 }

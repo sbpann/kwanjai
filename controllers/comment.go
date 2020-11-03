@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"fmt"
 	"kwanjai/helpers"
 	"kwanjai/libraries"
 	"kwanjai/models"
@@ -18,7 +17,6 @@ func NewComment() gin.HandlerFunc {
 		username := helpers.GetUsername(ginContext)
 		post := new(models.Post)
 		ginContext.ShouldBindJSON(post)
-		fmt.Println(post)
 		if post.UUID == "" || len(post.Comments) != 1 || post.Comments[0].Body == "" {
 			ginContext.JSON(http.StatusBadRequest, gin.H{"message": "Invalid comment form."})
 			return
@@ -31,9 +29,7 @@ func NewComment() gin.HandlerFunc {
 		now := time.Now().Truncate(time.Millisecond)
 		comment.AddedDate = now
 		comment.LastModified = now
-		fmt.Println("before", comment.Body)
 		status, message, post := post.FindPost()
-		fmt.Println("after", comment.Body)
 		if status != http.StatusOK {
 			ginContext.JSON(status, gin.H{"message": message})
 			return
@@ -53,7 +49,7 @@ func NewComment() gin.HandlerFunc {
 			ginContext.JSON(http.StatusInternalServerError, err.Error())
 			return
 		}
-		ginContext.JSON(status,
+		ginContext.JSON(http.StatusCreated,
 			gin.H{
 				"message": "Created sucessfully",
 				"post":    post,
@@ -67,7 +63,6 @@ func UpdateComment() gin.HandlerFunc {
 		username := helpers.GetUsername(ginContext)
 		post := new(models.Post)
 		ginContext.ShouldBindJSON(post)
-		fmt.Println(post)
 		if post.UUID == "" ||
 			len(post.Comments) != 1 ||
 			post.Comments[0].Body == "" ||
@@ -128,7 +123,6 @@ func DeleteComment() gin.HandlerFunc {
 		username := helpers.GetUsername(ginContext)
 		post := new(models.Post)
 		ginContext.ShouldBindJSON(post)
-		fmt.Println(post)
 		if post.UUID == "" ||
 			len(post.Comments) != 1 ||
 			post.Comments[0].UUID == "" {
