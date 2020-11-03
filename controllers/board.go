@@ -29,7 +29,7 @@ func AllBoard() gin.HandlerFunc {
 		for _, b := range searchBoards {
 			b.DataTo(board)
 			// check project membership
-			if helpers.IsProjectMember(username, board.Project) {
+			if !helpers.IsProjectMember(username, board.Project) {
 				ginContext.JSON(http.StatusForbidden, gin.H{"message": "You cannot perform this action."})
 				return
 			}

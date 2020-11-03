@@ -75,7 +75,13 @@ func getServer(mode string) *gin.Engine {
 	post := ginEngine.Group("/post")
 	post.Use(middlewares.AuthenticatedOnly())
 	{
+		post.POST("/all", controllers.AllPost())
 		post.POST("/new", controllers.NewPost())
+		post.PATCH("/find", controllers.FindPost())
+		post.DELETE("/delete", controllers.DeletePost())
+		post.POST("/comments/new", controllers.NewComment())
+		post.PATCH("/comments/update", controllers.UpdateComment())
+		post.DELETE("/comments/delete", controllers.DeleteComment())
 	}
 	return ginEngine
 }
