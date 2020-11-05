@@ -3,42 +3,42 @@ package models
 import (
 	"kwanjai/libraries"
 	"net/http"
-
-	"github.com/google/uuid"
 )
 
 // Project model
 type Project struct {
-	UUID    string   `json:"uuid"`
+	ID      string   `json:"id"`
 	User    string   `json:"username"`
 	Name    string   `json:"name" binding:"required"`
 	Members []string `json:"members"`
 }
 
 func (project *Project) CreateProject() (int, string, *Project) {
-	project.UUID = uuid.New().String()
 	project.Members = append(project.Members, project.User)
-	_, err := libraries.FirestoreCreatedOrSet("projects", project.UUID, project)
+	reference, _, err := libraries.FirestoreAdd("projects", project)
 	if err != nil {
 		return http.StatusInternalServerError, err.Error(), nil
 	}
+	go libraries.FirestoreDeleteField("projects", reference.ID, "ID")
+	project.ID = reference.ID
 	return http.StatusCreated, "Created project.", project
 }
 
 func (project *Project) FindProject() (int, string, *Project) {
-	if project.UUID == "" {
+	if project.ID == "" {
 		return http.StatusNotFound, "Project not found.", nil
 	}
-	getProject, _ := libraries.FirestoreFind("projects", project.UUID)
+	getProject, _ := libraries.FirestoreFind("projects", project.ID)
 	if getProject.Exists() {
 		getProject.DataTo(project)
+		project.ID = getProject.Ref.ID
 		return http.StatusOK, "Get project successfully.", project
 	}
 	return http.StatusNotFound, "Project not found.", nil
 }
 
 func (project *Project) UpdateProject() (int, string, *Project) {
-	_, err := libraries.FirestoreUpdateField("projects", project.UUID, "Name", project.Name)
+	_, err := libraries.FirestoreUpdateField("projects", project.ID, "Name", project.Name)
 	if err != nil {
 		return http.StatusInternalServerError, err.Error(), nil
 	}
@@ -46,7 +46,7 @@ func (project *Project) UpdateProject() (int, string, *Project) {
 }
 
 func (project *Project) DeleteProject() (int, string, *Project) {
-	_, err := libraries.FirestoreDelete("projects", project.UUID)
+	_, err := libraries.FirestoreDelete("projects", project.ID)
 	if err != nil {
 		return http.StatusInternalServerError, err.Error(), nil
 	}

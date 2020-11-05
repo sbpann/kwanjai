@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
-	"github.com/google/uuid"
 )
 
 // Token object.
@@ -25,7 +24,7 @@ type tokenStatus struct {
 
 type customClaims struct {
 	User string `json:"user"`
-	UUID string `json:"uuid,omitempty"`
+	ID   string `json:"id"`
 	*jwt.StandardClaims
 }
 
@@ -66,15 +65,13 @@ func GetTokenPayload(tokenString string, tokenType string, field string) (string
 // CreateToken returns token (string) and error.
 func CreateToken(tokenType string, username string) (string, error) {
 	secretKey, lifetime, err := getSecretKeyAndLifetime(tokenType)
-	var tokenUUID string
 	if err != nil {
 		return "no token created.", err
 	}
 
-	tokenUUID = uuid.New().String()
 	now := time.Now().Truncate(time.Millisecond)
 
-	_, err = FirestoreCreatedOrSet("tokenUUID", tokenUUID,
+	reference, _, err := FirestoreAdd("tokens",
 		map[string]interface{}{
 			"user":   username,
 			"expire": now,
@@ -84,7 +81,7 @@ func CreateToken(tokenType string, username string) (string, error) {
 	}
 	claims := &customClaims{
 		username,
-		tokenUUID,
+		reference.ID,
 		&jwt.StandardClaims{
 			ExpiresAt: now.Add(lifetime).Unix(),
 		},
@@ -122,20 +119,20 @@ func (tokenStatus *tokenStatus) createToken(username string, tokenType string, t
 
 // VerifyToken function returns token validiation status (bool), username (string), token UUID (string), error.
 func VerifyToken(tokenString string, tokenType string) (bool, string, string, error) {
-	tokenUUID, valid, err := GetTokenPayload(tokenString, tokenType, "uuid")
+	tokenID, valid, err := GetTokenPayload(tokenString, tokenType, "id")
 	username, _, err := GetTokenPayload(tokenString, tokenType, "user")
 	if err != nil {
 		if err.Error() == "Token is expired" {
-			FirestoreDelete("tokenUUID", tokenUUID)
+			FirestoreDelete("tokens", tokenID)
 		}
 		return false, "anonymous", "", err
 	}
-	uuidVerification, err := FirestoreFind("tokenUUID", tokenUUID)
-	if !uuidVerification.Exists() {
-		return false, "anonymous", "", err
+	tokenVerification, _ := FirestoreFind("tokens", tokenID)
+	if !tokenVerification.Exists() {
+		return false, "anonymous", "", errors.New("token does not exist in database")
 	}
 	if valid {
-		return true, username, tokenUUID, nil
+		return true, username, tokenID, nil
 	}
 	return false, "anonymous", "", err
 }

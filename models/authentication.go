@@ -17,25 +17,25 @@ type LoginCredential struct {
 
 // LogoutData to track logout process event.
 type LogoutData struct {
-	RefreshPassed    bool
-	AccessPassed     bool
-	User             string
-	AccessTokenUUID  string
-	RefreshTokenUUID string
-	AccessDeleted    bool
-	RefreshDeleted   bool
+	RefreshPassed  bool
+	AccessPassed   bool
+	User           string
+	AccessTokenID  string
+	RefreshTokenID string
+	AccessDeleted  bool
+	RefreshDeleted bool
 }
 
 // Verify logout credential.
 func (logout *LogoutData) Verify(tokenString string, tokenType string, passed chan bool, UUID chan string) {
 	if tokenType == "access" {
-		logout.AccessPassed, logout.User, logout.AccessTokenUUID, _ = libraries.VerifyToken(tokenString, "access")
+		logout.AccessPassed, logout.User, logout.AccessTokenID, _ = libraries.VerifyToken(tokenString, "access")
 		passed <- logout.AccessPassed
-		UUID <- logout.AccessTokenUUID
+		UUID <- logout.AccessTokenID
 	} else if tokenType == "refresh" {
-		logout.RefreshPassed, logout.User, logout.RefreshTokenUUID, _ = libraries.VerifyToken(tokenString, "refresh")
+		logout.RefreshPassed, logout.User, logout.RefreshTokenID, _ = libraries.VerifyToken(tokenString, "refresh")
 		passed <- logout.RefreshPassed
-		UUID <- logout.RefreshTokenUUID
+		UUID <- logout.RefreshTokenID
 	} else {
 		return
 	}

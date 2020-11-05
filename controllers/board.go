@@ -75,8 +75,8 @@ func FindBoard() gin.HandlerFunc {
 		username := helpers.GetUsername(ginContext)
 		board := new(models.Board)
 		ginContext.ShouldBindJSON(board)
-		if board.UUID == "" {
-			ginContext.JSON(http.StatusBadRequest, gin.H{"message": "Invalid UUID."})
+		if board.ID == "" {
+			ginContext.JSON(http.StatusBadRequest, gin.H{"message": "Invalid ID."})
 			return
 		}
 		status, message, board := board.FindBoard()
@@ -101,13 +101,13 @@ func UpdateBoard() gin.HandlerFunc {
 		username := helpers.GetUsername(ginContext)
 		board := new(models.Board)
 		ginContext.ShouldBindJSON(board)
-		if board.UUID == "" {
+		if board.ID == "" {
 			ginContext.JSON(http.StatusBadRequest, gin.H{"message": "Invalid UUID."})
 			return
 		}
 
 		// Check board ownership
-		if !helpers.IsOwner(username, "boards", board.UUID) {
+		if !helpers.IsOwner(username, "boards", board.ID) {
 			ginContext.JSON(http.StatusForbidden, gin.H{"message": "You cannot perform this action."})
 			return
 		}
@@ -129,13 +129,13 @@ func DeleteBoard() gin.HandlerFunc {
 		username := helpers.GetUsername(ginContext)
 		board := new(models.Board)
 		ginContext.ShouldBindJSON(board)
-		if board.UUID == "" {
+		if board.ID == "" {
 			ginContext.JSON(http.StatusBadRequest, gin.H{"message": "Invalid UUID."})
 			return
 		}
 
 		// Check board ownership
-		if !helpers.IsOwner(username, "boards", board.UUID) {
+		if !helpers.IsOwner(username, "boards", board.ID) {
 			ginContext.JSON(http.StatusForbidden, gin.H{"message": "You cannot perform this action."})
 			return
 		}

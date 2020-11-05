@@ -91,18 +91,18 @@ func Logout() gin.HandlerFunc {
 			return
 		}
 		accessPassed := make(chan bool)
-		accessTokenUUID := make(chan string)
+		accessTokenID := make(chan string)
 		refreshPassed := make(chan bool)
-		refreshTokenUUID := make(chan string)
-		go logout.Verify(token.AccessToken, "access", accessPassed, accessTokenUUID)
-		go logout.Verify(token.RefreshToken, "refresh", refreshPassed, refreshTokenUUID)
+		refreshTokenID := make(chan string)
+		go logout.Verify(token.AccessToken, "access", accessPassed, accessTokenID)
+		go logout.Verify(token.RefreshToken, "refresh", refreshPassed, refreshTokenID)
 		passed := true == <-accessPassed && true == <-refreshPassed
 		if !passed {
 			ginContext.JSON(http.StatusUnauthorized, gin.H{"message": "Token verification failed."})
 			return
 		}
-		go libraries.FirestoreDelete("tokenUUID", <-accessTokenUUID)
-		go libraries.FirestoreDelete("tokenUUID", <-refreshTokenUUID)
+		go libraries.FirestoreDelete("tokens", <-accessTokenID)
+		go libraries.FirestoreDelete("tokens", <-refreshTokenID)
 
 		ginContext.JSON(200, gin.H{"message": "User logged out successfully."})
 	}
@@ -134,9 +134,9 @@ func RefreshToken() gin.HandlerFunc {
 			ginContext.JSON(status, gin.H{"message": err.Error()})
 			return
 		}
-		_, user, tokenUUID, err := libraries.VerifyToken(token.AccessToken, "access") // if token is expried here, it's got delete.
-		if user != "anonymous" && err == nil {                                        // user != "anonymous" means token is still valid.
-			_, err = libraries.FirestoreDelete("tokenUUID", tokenUUID)
+		_, user, tokenID, err := libraries.VerifyToken(token.AccessToken, "access") // if token is expried here, it's got delete.
+		if user != "anonymous" && err == nil {                                      // user != "anonymous" means token is still valid.
+			_, err = libraries.FirestoreDelete("tokens", tokenID)
 			if err != nil {
 				ginContext.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 				return
@@ -145,7 +145,6 @@ func RefreshToken() gin.HandlerFunc {
 		newToken, err := libraries.CreateToken("access", user)
 		token.AccessToken = newToken
 		ginContext.JSON(http.StatusOK, gin.H{
-			"user":  user,
 			"token": token,
 		})
 	}

@@ -17,7 +17,7 @@ func NewComment() gin.HandlerFunc {
 		username := helpers.GetUsername(ginContext)
 		post := new(models.Post)
 		ginContext.ShouldBindJSON(post)
-		if post.UUID == "" || len(post.Comments) != 1 || post.Comments[0].Body == "" {
+		if post.ID == "" || len(post.Comments) != 1 || post.Comments[0].Body == "" {
 			ginContext.JSON(http.StatusBadRequest, gin.H{"message": "Invalid comment form."})
 			return
 		}
@@ -44,7 +44,7 @@ func NewComment() gin.HandlerFunc {
 		}
 
 		// Update to Firestore
-		_, err := libraries.FirestoreUpdateField("posts", post.UUID, "Comments", post.Comments)
+		_, err := libraries.FirestoreUpdateField("posts", post.ID, "Comments", post.Comments)
 		if err != nil {
 			ginContext.JSON(http.StatusInternalServerError, err.Error())
 			return
@@ -63,7 +63,7 @@ func UpdateComment() gin.HandlerFunc {
 		username := helpers.GetUsername(ginContext)
 		post := new(models.Post)
 		ginContext.ShouldBindJSON(post)
-		if post.UUID == "" ||
+		if post.ID == "" ||
 			len(post.Comments) != 1 ||
 			post.Comments[0].Body == "" ||
 			post.Comments[0].UUID == "" {
@@ -104,7 +104,7 @@ func UpdateComment() gin.HandlerFunc {
 		}
 
 		// Update to Firestore
-		_, err := libraries.FirestoreUpdateField("posts", post.UUID, "Comments", post.Comments)
+		_, err := libraries.FirestoreUpdateField("posts", post.ID, "Comments", post.Comments)
 		if err != nil {
 			ginContext.JSON(http.StatusForbidden, gin.H{"message": "You cannot perform this action."})
 			return
@@ -123,7 +123,7 @@ func DeleteComment() gin.HandlerFunc {
 		username := helpers.GetUsername(ginContext)
 		post := new(models.Post)
 		ginContext.ShouldBindJSON(post)
-		if post.UUID == "" ||
+		if post.ID == "" ||
 			len(post.Comments) != 1 ||
 			post.Comments[0].UUID == "" {
 			ginContext.JSON(http.StatusBadRequest, gin.H{"message": "Invalid comment form."})
@@ -163,7 +163,7 @@ func DeleteComment() gin.HandlerFunc {
 		}
 		post.Comments = append(post.Comments[:index], post.Comments[index+1:]...)
 		// Update to Firestore
-		_, err := libraries.FirestoreUpdateField("posts", post.UUID, "Comments", post.Comments)
+		_, err := libraries.FirestoreUpdateField("posts", post.ID, "Comments", post.Comments)
 		if err != nil {
 			ginContext.JSON(http.StatusForbidden, gin.H{"message": "You cannot perform this action."})
 			return

@@ -10,7 +10,7 @@ import (
 )
 
 // JWTAuthorization middleware.
-// Base authentication which always stores user object in context.
+// Base authentication which always stores user object in Gin context.
 // If token verification failed, anonymous user object is stored.
 func JWTAuthorization() gin.HandlerFunc {
 	return func(ginContext *gin.Context) {
@@ -27,7 +27,9 @@ func JWTAuthorization() gin.HandlerFunc {
 			ginContext.AbortWithStatus(500)
 			return
 		}
+		projects, _ := libraries.FirestoreSearch("projects", "Members", "array-contains", username)
 		getUser.DataTo(user)
+		user.Projects = len(projects)
 		ginContext.Set("user", user)
 	}
 }

@@ -87,10 +87,11 @@ func FindPost() gin.HandlerFunc {
 		username := helpers.GetUsername(ginContext)
 		post := new(models.Post)
 		ginContext.ShouldBindJSON(post)
-		if post.UUID == "" {
+		if post.ID == "" {
 			ginContext.JSON(http.StatusBadRequest, gin.H{"message": "Invalid UUID."})
 			return
 		}
+		status, message, post := post.FindPost()
 
 		// Check project membership
 		if !helpers.IsProjectMember(username, post.Project) {
@@ -98,7 +99,6 @@ func FindPost() gin.HandlerFunc {
 			return
 		}
 
-		status, message, post := post.FindPost()
 		ginContext.JSON(status,
 			gin.H{
 				"message": message,
@@ -113,13 +113,13 @@ func UpdatePost() gin.HandlerFunc {
 		username := helpers.GetUsername(ginContext)
 		post := new(models.Post)
 		ginContext.ShouldBindJSON(post)
-		if post.UUID == "" {
+		if post.ID == "" {
 			ginContext.JSON(http.StatusBadRequest, gin.H{"message": "Invalid UUID."})
 			return
 		}
 
 		// Check post ownership
-		if !helpers.IsOwner(username, "post", post.UUID) {
+		if !helpers.IsOwner(username, "post", post.ID) {
 			ginContext.JSON(http.StatusForbidden, gin.H{"message": "You cannot perform this action."})
 			return
 		}
@@ -145,13 +145,13 @@ func DeletePost() gin.HandlerFunc {
 		username := helpers.GetUsername(ginContext)
 		post := new(models.Post)
 		ginContext.ShouldBindJSON(post)
-		if post.UUID == "" {
+		if post.ID == "" {
 			ginContext.JSON(http.StatusBadRequest, gin.H{"message": "Invalid UUID."})
 			return
 		}
 
 		// Check post ownership
-		if !helpers.IsOwner(username, "posts", post.UUID) {
+		if !helpers.IsOwner(username, "posts", post.ID) {
 			ginContext.JSON(http.StatusForbidden, gin.H{"message": "You cannot perform this action."})
 			return
 		}

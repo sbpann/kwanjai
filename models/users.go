@@ -20,6 +20,8 @@ type User struct {
 	IsActive       bool      `json:"is_active"`
 	JoinedDate     time.Time `json:"joined_date"`
 	ProfilePicture string    `json:"profile_picture"`
+	Plan           string
+	Projects       int
 }
 
 // Register user method.
@@ -74,7 +76,7 @@ func (user *User) createUser() (int, string, *User) {
 		return http.StatusConflict, "Provided email or username is already registered.", nil
 	}
 	user.initialize()
-	_, err := libraries.FirestoreCreatedOrSet("users", user.Username, user)
+	_, err := libraries.FirestoreCreateOrSet("users", user.Username, user)
 	if err != nil {
 		return http.StatusInternalServerError, err.Error(), nil
 	}
@@ -86,10 +88,11 @@ func (user *User) createUser() (int, string, *User) {
 func (user *User) SendVerificationEmail() (int, string) {
 	email := new(VerificationEmail)
 	email.Initialize(user.Username, user.Email)
-	_, err := libraries.FirestoreCreatedOrSet("verificationEmail", email.UUID, email)
+	reference, _, err := libraries.FirestoreAdd("verificationEmail", email)
 	if err != nil {
 		return http.StatusInternalServerError, err.Error()
 	}
+	email.ID = reference.ID
 	status, message := email.Send()
 	return status, message
 }
@@ -102,6 +105,7 @@ func (user *User) HashPassword() {
 }
 
 func (user *User) initialize() {
+	user.Plan = "Starter"
 	user.IsSuperUser = false
 	user.IsVerified = false
 	user.JoinedDate = time.Now()

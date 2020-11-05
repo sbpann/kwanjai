@@ -75,8 +75,8 @@ func FirestoreSearch(collecttion string, field string, condition string, propert
 	return documents, err
 }
 
-// FirestoreCreatedOrSet by collection, id.
-func FirestoreCreatedOrSet(collecttion string, id string, data interface{}) (*firestore.WriteResult, error) {
+// FirestoreCreateOrSet by collection, id.
+func FirestoreCreateOrSet(collecttion string, id string, data interface{}) (*firestore.WriteResult, error) {
 	if collecttion == "" || id == "" {
 		// create blank result
 		blank := new(firestore.WriteResult)
@@ -86,6 +86,20 @@ func FirestoreCreatedOrSet(collecttion string, id string, data interface{}) (*fi
 	defer firestoreClient.Close()
 	result, err := firestoreClient.Collection(collecttion).Doc(id).Set(config.Context, data)
 	return result, err
+}
+
+// FirestoreAdd by collection and automatically create id.
+func FirestoreAdd(collecttion string, data interface{}) (*firestore.DocumentRef, *firestore.WriteResult, error) {
+	if collecttion == "" {
+		// create blank result
+		blankResult := new(firestore.WriteResult)
+		blankReference := new(firestore.DocumentRef)
+		return blankReference, blankResult, errors.New("invalid document reference")
+	}
+	firestoreClient, err := FirebaseApp().Firestore(config.Context)
+	defer firestoreClient.Close()
+	reference, result, err := firestoreClient.Collection(collecttion).Add(config.Context, data)
+	return reference, result, err
 }
 
 // FirestoreUpdateField by collection, id, and field.

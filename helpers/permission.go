@@ -14,6 +14,13 @@ func GetUsername(ginContext *gin.Context) string {
 	return username
 }
 
+// GetUserPlan fucntion returns user plan (string).
+func GetUserPlan(ginContext *gin.Context) string {
+	user, _ := ginContext.Get("user") // user always exists
+	username := user.(*models.User).Plan
+	return username
+}
+
 // IsSuperUser fucntion returns superuser status (bool).
 func IsSuperUser(ginContext *gin.Context) bool {
 	user, _ := ginContext.Get("user") // user always exists

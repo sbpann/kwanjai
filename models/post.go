@@ -4,13 +4,11 @@ import (
 	"kwanjai/libraries"
 	"net/http"
 	"time"
-
-	"github.com/google/uuid"
 )
 
 // Post model.
 type Post struct {
-	UUID         string     `json:"uuid"`
+	ID           string     `json:"id"`
 	Board        string     `json:"board" binding:"required"`
 	Project      string     `json:"project"` // It's an advantage for checking project membership.
 	User         string     `json:"username"`
@@ -34,7 +32,6 @@ type Comment struct {
 }
 
 func (post *Post) initialize() {
-	post.UUID = uuid.New().String()
 	post.People = []string{}
 	post.Comments = []*Comment{}
 	now := time.Now().Truncate(time.Millisecond)
@@ -44,27 +41,30 @@ func (post *Post) initialize() {
 
 func (post *Post) CreatePost() (int, string, *Post) {
 	post.initialize()
-	_, err := libraries.FirestoreCreatedOrSet("posts", post.UUID, post)
+	reference, _, err := libraries.FirestoreAdd("posts", post)
 	if err != nil {
 		return http.StatusInternalServerError, err.Error(), nil
 	}
+	go libraries.FirestoreDeleteField("posts", reference.ID, "ID")
+	post.ID = reference.ID
 	return http.StatusCreated, "Created post.", post
 }
 
 func (post *Post) FindPost() (int, string, *Post) {
-	if post.UUID == "" {
+	if post.ID == "" {
 		return http.StatusNotFound, "Post not found.", nil
 	}
-	getPost, _ := libraries.FirestoreFind("posts", post.UUID)
+	getPost, _ := libraries.FirestoreFind("posts", post.ID)
 	if getPost.Exists() {
 		getPost.DataTo(post)
+		post.ID = getPost.Ref.ID
 		return http.StatusOK, "Get post successfully.", post
 	}
 	return http.StatusNotFound, "Post not found.", nil
 }
 
 func (post *Post) UpdatePost(field string, value interface{}) (int, string, *Post) {
-	_, err := libraries.FirestoreUpdateField("posts", post.UUID, field, value)
+	_, err := libraries.FirestoreUpdateField("posts", post.ID, field, value)
 	if err != nil {
 		return http.StatusInternalServerError, err.Error(), nil
 	}
@@ -72,7 +72,7 @@ func (post *Post) UpdatePost(field string, value interface{}) (int, string, *Pos
 }
 
 func (post *Post) DeletePost() (int, string, *Post) {
-	_, err := libraries.FirestoreDelete("posts", post.UUID)
+	_, err := libraries.FirestoreDelete("posts", post.ID)
 	if err != nil {
 		return http.StatusInternalServerError, err.Error(), nil
 	}

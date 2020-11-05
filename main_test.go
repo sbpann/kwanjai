@@ -18,10 +18,10 @@ func clearTestUser1(t *testing.T) {
 	if getUser.Exists() {
 		_, err = libraries.FirestoreDelete("users", "test1")
 		assert.Equal(t, nil, err)
-		getToken, err := libraries.FirestoreSearch("tokenUUID", "user", "==", "test1")
+		getToken, err := libraries.FirestoreSearch("tokens", "user", "==", "test1")
 		assert.Equal(t, nil, err)
 		for _, token := range getToken {
-			_, err = libraries.FirestoreDelete("tokenUUID", token.Ref.ID)
+			_, err = libraries.FirestoreDelete("tokens", token.Ref.ID)
 			assert.Equal(t, nil, err)
 		}
 	}
@@ -30,12 +30,12 @@ func clearTestUser1(t *testing.T) {
 	if len(getEmail) > 0 {
 		_, err = libraries.FirestoreDelete("users", getEmail[0].Data()["Username"].(string))
 		assert.Equal(t, nil, err)
-		_, err = libraries.FirestoreDelete("tokenUUID", getEmail[0].Data()["Username"].(string))
+		_, err = libraries.FirestoreDelete("tokens", getEmail[0].Data()["Username"].(string))
 		assert.Equal(t, nil, err)
-		getToken, err := libraries.FirestoreSearch("tokenUUID", "user", "==", getEmail[0].Data()["Username"])
+		getToken, err := libraries.FirestoreSearch("tokens", "user", "==", getEmail[0].Data()["Username"])
 		assert.Equal(t, nil, err)
 		for _, token := range getToken {
-			_, err = libraries.FirestoreDelete("tokenUUID", token.Ref.ID)
+			_, err = libraries.FirestoreDelete("tokens", token.Ref.ID)
 			assert.Equal(t, nil, err)
 		}
 	}
@@ -46,10 +46,10 @@ func clearTestUser2(t *testing.T) {
 	if getUser.Exists() {
 		_, err = libraries.FirestoreDelete("users", "test2")
 		assert.Equal(t, nil, err)
-		getToken, err := libraries.FirestoreSearch("tokenUUID", "user", "==", "test2")
+		getToken, err := libraries.FirestoreSearch("tokens", "user", "==", "test2")
 		assert.Equal(t, nil, err)
 		for _, token := range getToken {
-			_, err = libraries.FirestoreDelete("tokenUUID", token.Ref.ID)
+			_, err = libraries.FirestoreDelete("tokens", token.Ref.ID)
 			assert.Equal(t, nil, err)
 		}
 	}
@@ -58,12 +58,12 @@ func clearTestUser2(t *testing.T) {
 	if len(getEmail) > 0 {
 		_, err = libraries.FirestoreDelete("users", getEmail[0].Data()["Username"].(string))
 		assert.Equal(t, nil, err)
-		_, err = libraries.FirestoreDelete("tokenUUID", getEmail[0].Data()["Username"].(string))
+		_, err = libraries.FirestoreDelete("tokens", getEmail[0].Data()["Username"].(string))
 		assert.Equal(t, nil, err)
-		getToken, err := libraries.FirestoreSearch("tokenUUID", "user", "==", getEmail[0].Data()["Username"])
+		getToken, err := libraries.FirestoreSearch("tokens", "user", "==", getEmail[0].Data()["Username"])
 		assert.Equal(t, nil, err)
 		for _, token := range getToken {
-			_, err = libraries.FirestoreDelete("tokenUUID", token.Ref.ID)
+			_, err = libraries.FirestoreDelete("tokens", token.Ref.ID)
 			assert.Equal(t, nil, err)
 		}
 	}
@@ -234,7 +234,7 @@ func TestCreateBoardGetAllProjects(t *testing.T) {
 	getServer("test").ServeHTTP(writer, request)
 	assert.Equal(t, http.StatusCreated, writer.Code)
 	json.Unmarshal([]byte(writer.Body.String()), &response)
-	createdProjectUUID := response["project"].(map[string]interface{})["uuid"].(string)
+	createdProjectID := response["project"].(map[string]interface{})["id"].(string)
 
 	// user test2 get all projects
 	writer = httptest.NewRecorder()
@@ -256,7 +256,7 @@ func TestCreateBoardGetAllProjects(t *testing.T) {
 	allProjects = response["projects"].([]interface{})
 	assert.Equal(t, 1, len(allProjects)) //should return array with one element
 
-	_, err := libraries.FirestoreDelete("projects", createdProjectUUID)
+	_, err := libraries.FirestoreDelete("projects", createdProjectID)
 	assert.Equal(t, nil, err)
 }
 
@@ -303,12 +303,12 @@ func TestCreateBoard(t *testing.T) {
 	getServer("test").ServeHTTP(writer, request)
 	assert.Equal(t, http.StatusCreated, writer.Code)
 	json.Unmarshal([]byte(writer.Body.String()), &response)
-	createdProjectUUID := response["project"].(map[string]interface{})["uuid"].(string)
+	createdProjectID := response["project"].(map[string]interface{})["id"].(string)
 
 	// user test2 try to create board under project of user test1.
 	board := new(models.Board)
 	board.Name = "My new board"
-	board.Project = createdProjectUUID
+	board.Project = createdProjectID
 	b, _ = json.Marshal(board)
 	writer = httptest.NewRecorder()
 	request, _ = http.NewRequest("POST", "/board/new", bytes.NewBuffer([]byte(b)))
@@ -323,11 +323,11 @@ func TestCreateBoard(t *testing.T) {
 	getServer("test").ServeHTTP(writer, request)
 	assert.Equal(t, http.StatusCreated, writer.Code) // should pass.
 	json.Unmarshal([]byte(writer.Body.String()), &response)
-	createdBoardtUUID := response["board"].(map[string]interface{})["uuid"].(string)
+	createdBoardID := response["board"].(map[string]interface{})["id"].(string)
 
-	_, err := libraries.FirestoreDelete("projects", createdProjectUUID)
+	_, err := libraries.FirestoreDelete("projects", createdProjectID)
 	assert.Equal(t, nil, err)
-	_, err = libraries.FirestoreDelete("boards", createdBoardtUUID)
+	_, err = libraries.FirestoreDelete("boards", createdBoardID)
 	assert.Equal(t, nil, err)
 }
 
@@ -360,12 +360,12 @@ func TestCreateAndDeletePost(t *testing.T) {
 	getServer("test").ServeHTTP(writer, request)
 	assert.Equal(t, http.StatusCreated, writer.Code)
 	json.Unmarshal([]byte(writer.Body.String()), &response)
-	createdProjectUUID := response["project"].(map[string]interface{})["uuid"].(string)
+	createdProjectID := response["project"].(map[string]interface{})["id"].(string)
 
 	// Created board
 	board := new(models.Board)
 	board.Name = "My new board"
-	board.Project = createdProjectUUID
+	board.Project = createdProjectID
 	b, _ = json.Marshal(board)
 	writer = httptest.NewRecorder()
 	request, _ = http.NewRequest("POST", "/board/new", bytes.NewBuffer([]byte(b)))
@@ -373,11 +373,11 @@ func TestCreateAndDeletePost(t *testing.T) {
 	getServer("test").ServeHTTP(writer, request)
 	assert.Equal(t, http.StatusCreated, writer.Code) // should pass.
 	json.Unmarshal([]byte(writer.Body.String()), &response)
-	createdBoardtUUID := response["board"].(map[string]interface{})["uuid"].(string)
+	createdBoardID := response["board"].(map[string]interface{})["id"].(string)
 
 	// Created post
 	post := new(models.Post)
-	post.Board = createdBoardtUUID
+	post.Board = createdBoardID
 	post.Title = "My post"
 	post.Body = "My this post is created for testing."
 	b, _ = json.Marshal(post)
@@ -387,7 +387,7 @@ func TestCreateAndDeletePost(t *testing.T) {
 	getServer("test").ServeHTTP(writer, request)
 	assert.Equal(t, http.StatusCreated, writer.Code) // should pass.
 	json.Unmarshal([]byte(writer.Body.String()), &response)
-	createdPostUUID := response["post"].(map[string]interface{})["uuid"].(string)
+	createdPostID := response["post"].(map[string]interface{})["id"].(string)
 
 	// register2
 	registerInfo = new(models.User)
@@ -404,7 +404,7 @@ func TestCreateAndDeletePost(t *testing.T) {
 	token2.AccessToken = response["token"].(map[string]interface{})["access_token"].(string)
 
 	// user test2 try to delete post created by user 1.
-	post.UUID = createdPostUUID
+	post.ID = createdPostID
 	b, _ = json.Marshal(post)
 	writer = httptest.NewRecorder()
 	request, _ = http.NewRequest("DELETE", "/post/delete", bytes.NewBuffer([]byte(b)))
@@ -419,9 +419,9 @@ func TestCreateAndDeletePost(t *testing.T) {
 	getServer("test").ServeHTTP(writer, request)
 	assert.Equal(t, http.StatusOK, writer.Code) // should pass.
 
-	_, err := libraries.FirestoreDelete("projects", createdProjectUUID)
+	_, err := libraries.FirestoreDelete("projects", createdProjectID)
 	assert.Equal(t, nil, err)
-	_, err = libraries.FirestoreDelete("boards", createdBoardtUUID)
+	_, err = libraries.FirestoreDelete("boards", createdBoardID)
 	assert.Equal(t, nil, err)
 }
 
@@ -454,12 +454,12 @@ func TestCreateAndDeleteComment(t *testing.T) {
 	getServer("test").ServeHTTP(writer, request)
 	assert.Equal(t, http.StatusCreated, writer.Code)
 	json.Unmarshal([]byte(writer.Body.String()), &response)
-	createdProjectUUID := response["project"].(map[string]interface{})["uuid"].(string)
+	createdProjectID := response["project"].(map[string]interface{})["id"].(string)
 
 	// Created board
 	board := new(models.Board)
 	board.Name = "My new board"
-	board.Project = createdProjectUUID
+	board.Project = createdProjectID
 	b, _ = json.Marshal(board)
 	writer = httptest.NewRecorder()
 	request, _ = http.NewRequest("POST", "/board/new", bytes.NewBuffer([]byte(b)))
@@ -467,11 +467,11 @@ func TestCreateAndDeleteComment(t *testing.T) {
 	getServer("test").ServeHTTP(writer, request)
 	assert.Equal(t, http.StatusCreated, writer.Code) // should pass.
 	json.Unmarshal([]byte(writer.Body.String()), &response)
-	createdBoardtUUID := response["board"].(map[string]interface{})["uuid"].(string)
+	createdBoardID := response["board"].(map[string]interface{})["id"].(string)
 
 	// Created post
 	post := new(models.Post)
-	post.Board = createdBoardtUUID
+	post.Board = createdBoardID
 	post.Title = "My post"
 	post.Body = "My this post is created for testing."
 	b, _ = json.Marshal(post)
@@ -481,8 +481,8 @@ func TestCreateAndDeleteComment(t *testing.T) {
 	getServer("test").ServeHTTP(writer, request)
 	assert.Equal(t, http.StatusCreated, writer.Code) // should pass.
 	json.Unmarshal([]byte(writer.Body.String()), &response)
-	createdPostUUID := response["post"].(map[string]interface{})["uuid"].(string)
-	post.UUID = createdPostUUID
+	createdPostID := response["post"].(map[string]interface{})["id"].(string)
+	post.ID = createdPostID
 
 	// Create comment by user test1
 	post.Comments = append(post.Comments, &models.Comment{Body: "my comment"})
@@ -525,10 +525,13 @@ func TestCreateAndDeleteComment(t *testing.T) {
 	getServer("test").ServeHTTP(writer, request)
 	assert.Equal(t, http.StatusOK, writer.Code) // should pass.
 
-	_, err := libraries.FirestoreDelete("projects", createdProjectUUID)
+	_, err := libraries.FirestoreDelete("projects", createdProjectID)
 	assert.Equal(t, nil, err)
-	_, err = libraries.FirestoreDelete("boards", createdBoardtUUID)
+	_, err = libraries.FirestoreDelete("boards", createdBoardID)
 	assert.Equal(t, nil, err)
-	_, err = libraries.FirestoreDelete("posts", createdPostUUID)
+	_, err = libraries.FirestoreDelete("posts", createdPostID)
 	assert.Equal(t, nil, err)
+
+	clearTestUser1(t)
+	clearTestUser2(t)
 }

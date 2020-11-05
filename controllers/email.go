@@ -12,7 +12,7 @@ func VerifyEmail() gin.HandlerFunc {
 	return func(ginContext *gin.Context) {
 		verificationEmail := new(models.VerificationEmail)
 		ginContext.ShouldBind(verificationEmail)
-		verificationEmail.UUID = ginContext.Param("UUID")
+		verificationEmail.ID = ginContext.Param("ID")
 		status, message := verificationEmail.Verify()
 		ginContext.JSON(status, gin.H{"message": message})
 	}

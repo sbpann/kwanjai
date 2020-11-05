@@ -22,6 +22,7 @@ func AllProject() gin.HandlerFunc {
 		allProjects := []*models.Project{}
 		for _, p := range searchProjects {
 			p.DataTo(project)
+			project.ID = p.Ref.ID
 			allProjects = append(allProjects, project)
 		}
 		ginContext.JSON(http.StatusOK, gin.H{"projects": allProjects})
@@ -54,8 +55,8 @@ func FindProject() gin.HandlerFunc {
 	return func(ginContext *gin.Context) {
 		project := new(models.Project)
 		ginContext.ShouldBindJSON(project)
-		if project.UUID == "" {
-			ginContext.JSON(http.StatusBadRequest, gin.H{"message": "Invalid UUID."})
+		if project.ID == "" {
+			ginContext.JSON(http.StatusBadRequest, gin.H{"message": "Invalid ID."})
 			return
 		}
 		status, message, project := project.FindProject()
@@ -73,12 +74,12 @@ func UpdateProject() gin.HandlerFunc {
 		username := helpers.GetUsername(ginContext)
 		project := new(models.Project)
 		ginContext.ShouldBindJSON(project)
-		if project.UUID == "" {
+		if project.ID == "" {
 			ginContext.JSON(http.StatusBadRequest, gin.H{"message": "Invalid UUID."})
 			return
 		}
 		copiedProject := new(models.Project)
-		copiedProject.UUID = project.UUID
+		copiedProject.ID = project.ID
 		status, message, _ := copiedProject.FindProject()
 		if status != http.StatusOK {
 			ginContext.JSON(status,
@@ -107,12 +108,12 @@ func DeleteProject() gin.HandlerFunc {
 		username := helpers.GetUsername(ginContext)
 		project := new(models.Project)
 		ginContext.ShouldBindJSON(project)
-		if project.UUID == "" {
+		if project.ID == "" {
 			ginContext.JSON(http.StatusBadRequest, gin.H{"message": "Invalid UUID."})
 			return
 		}
 		copiedProject := new(models.Project)
-		copiedProject.UUID = project.UUID
+		copiedProject.ID = project.ID
 		status, message, _ := copiedProject.FindProject()
 		if status != http.StatusOK {
 			ginContext.JSON(status,
