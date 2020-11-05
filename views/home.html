@@ -1,0 +1,42 @@
+$gin{define "home"}
+<v-container id="home">
+    <v-row>
+        <v-container class="text-h2">
+            All projects
+        </v-container>
+    </v-row>
+
+    <v-row>
+        <v-col
+            v-for="project in allProjects.filter((element, index) => {return index+1 >= 1+((projectsPage-1)*projectPerPage) && index+1 <= projectsPage*projectPerPage})"
+            :key="project.id" :cols="projectCols">
+            <v-card height="400px">
+                <v-card-title>
+                    {{ (project.name.substring(0, projectNameLimit) + (project.name.length > projectNameLimit ? '...' : '')) }}
+                </v-card-title>
+                <v-card-subtitle>
+                    {{ project.user }}
+                </v-card-subtitle>
+                <v-card-text>
+                    <v-tooltip
+                        v-for="(members, index) in project.members.filter((element, index) => {return index<(projectMemberLimit+1)})"
+                        :key="index" bottom>
+                        <template #activator="{ on, attrs }">
+                            <v-avatar size="40" v-bind="attrs" v-on="on">
+                                <v-img v-if="index < projectMemberLimit"
+                                    src="https://storage.googleapis.com/kwanjai-a3803.appspot.com/anonymous.png" />
+                                <span v-else>{{ `+${project.members.length-projectMemberLimit}` }}</span>
+                            </v-avatar>
+                        </template>
+                        <!-- index < 41 detects error for Parsing error: invalid-first-character-of-tag-name eslint-plugin-vue issue #370-->
+                        {{ projectMemberLimit > index ? `${members.firstname} ${members.lastname}` : `+${project.members.length-projectMemberLimit}` }}
+                    </v-tooltip>
+                </v-card-text>
+            </v-card>
+        </v-col>
+    </v-row>
+    <v-row>
+        <v-pagination v-model="projectsPage" :length="Math.ceil(allProjects.length / projectPerPage)" />
+    </v-row>
+</v-container>
+$gin{end}

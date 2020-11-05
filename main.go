@@ -9,6 +9,7 @@ import (
 	"kwanjai/libraries"
 	"kwanjai/middlewares"
 	"log"
+	"net/http"
 	"os"
 	"time"
 
@@ -50,13 +51,17 @@ func getServer(mode string) *gin.Engine {
 	}
 	ginEngine := gin.Default()
 	ginEngine.Use(config.DefaultAuthenticationBackend)
-	ginEngine.POST("/login", controllers.Login())
-	ginEngine.POST("/register", controllers.Register())
-	ginEngine.POST("/logout", middlewares.AuthenticatedOnly(), controllers.Logout())
-	ginEngine.POST("/verify_email/:UUID", controllers.VerifyEmail())
-	ginEngine.POST("/resend_verification_email", controllers.ResendVerifyEmail())
-	ginEngine.POST("/token/refresh", controllers.RefreshToken())
-	project := ginEngine.Group("/project")
+	api := ginEngine.Group("/api")
+	authentication := api.Group("/authentication")
+	authentication.POST("/login", controllers.Login())
+	authentication.POST("/register", controllers.Register())
+	authentication.POST("/logout", middlewares.AuthenticatedOnly(), controllers.Logout())
+	authentication.POST("/verify_email/:UUID", controllers.VerifyEmail())
+	authentication.POST("/resend_verification_email", controllers.ResendVerifyEmail())
+	authentication.POST("/token/refresh", controllers.RefreshToken())
+	authentication.GET("/token/verify", controllers.TokenVerification())
+	project := api.Group("/project")
+	// project := ginEngine.Group("/project")
 	project.Use(middlewares.AuthenticatedOnly())
 	{
 		project.GET("/all", controllers.AllProject())
@@ -65,7 +70,8 @@ func getServer(mode string) *gin.Engine {
 		project.PATCH("/update", controllers.UpdateProject())
 		project.DELETE("/delete", controllers.DeleteProject())
 	}
-	board := ginEngine.Group("/board")
+	board := api.Group("/board")
+	// board := ginEngine.Group("/board")
 	board.Use(middlewares.AuthenticatedOnly())
 	{
 		board.POST("/all", controllers.AllBoard())
@@ -74,7 +80,8 @@ func getServer(mode string) *gin.Engine {
 		board.PATCH("/update", controllers.UpdateBoard())
 		board.DELETE("/delete", controllers.DeleteBoard())
 	}
-	post := ginEngine.Group("/post")
+	post := api.Group("/post")
+	// post := ginEngine.Group("/post")
 	post.Use(middlewares.AuthenticatedOnly())
 	{
 		post.POST("/all", controllers.AllPost())
@@ -85,6 +92,11 @@ func getServer(mode string) *gin.Engine {
 		post.PATCH("/comment/update", controllers.UpdateComment())
 		post.DELETE("/comment/delete", controllers.DeleteComment())
 	}
+	ginEngine.Delims("$gin{", "}")
+	ginEngine.LoadHTMLGlob("views/*")
+	ginEngine.GET("/", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "index.html", gin.H{})
+	})
 	return ginEngine
 }
 

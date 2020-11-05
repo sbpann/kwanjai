@@ -1,0 +1,39 @@
+$gin{define "navbar"}
+<v-app-bar id="navbar" app dense color="primary">
+    <v-btn :class="$vuetify.breakpoint.smAndUp ? 'mr-2' : ''" @click="
+              $vuetify.theme.dark = !$vuetify.theme.dark;
+            ">
+        <v-icon>{{ !$vuetify.theme.dark ? "mdi-white-balance-sunny" : "mdi-moon-waning-crescent" }}</v-icon>
+    </v-btn>
+    <v-btn :class="$vuetify.breakpoint.smAndUp ? 'mr-2' : ''" to="/">
+        <v-icon>mdi-home</v-icon>
+    </v-btn>
+    <v-menu offset-y>
+        <template #activator="{ on, attrs }">
+            <v-btn v-bind="attrs" v-on="on">
+                <v-icon left>
+                    mdi-file-document-multiple
+                </v-icon>
+                Projects
+            </v-btn>
+        </template>
+        <v-list>
+            <v-list-item v-for="project in allProjects" :key="project.id">
+                <v-list-item-title>{{ project.name.substring(0, 16) + (project.name.length > 16 ? '...' : '' ) }}
+                </v-list-item-title>
+            </v-list-item>
+        </v-list>
+    </v-menu>
+    <v-container v-if="$vuetify.breakpoint.width > 800" :style="`margin-left: ${logoLeftMargin}px`">
+        <v-toolbar-title class="font-weight-medium white--text">
+            K W A N J A I
+        </v-toolbar-title>
+    </v-container>
+    <v-btn @click="navigationDrawer = !navigationDrawer">
+        <v-icon>mdi-account</v-icon>
+    </v-btn>
+</v-app-bar>
+<v-navigation-drawer v-model="navigationDrawer" app temporary right>
+
+</v-navigation-drawer>
+$gin{end}

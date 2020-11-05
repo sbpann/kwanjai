@@ -5,6 +5,7 @@ import (
 	"kwanjai/libraries"
 	"kwanjai/models"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -15,8 +16,16 @@ import (
 func JWTAuthorization() gin.HandlerFunc {
 	return func(ginContext *gin.Context) {
 		user := new(models.User)
-		// Todo: add Bearer prefix
-		passed, username, _, err := libraries.VerifyToken(ginContext.Request.Header.Get("Authorization"), "access")
+		var token string
+		extractedToken := strings.Split(ginContext.Request.Header.Get("Authorization"), "Bearer ")
+		if len(extractedToken) != 2 {
+			token = ""
+		} else if extractedToken[0] != "Bearer " {
+			token = ""
+		} else {
+			token = extractedToken[1]
+		}
+		passed, username, _, err := libraries.VerifyToken(token, "access")
 		if !passed {
 			user.MakeAnonymous()
 			ginContext.Set("user", user)

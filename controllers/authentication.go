@@ -5,6 +5,7 @@ import (
 	"kwanjai/libraries"
 	"kwanjai/models"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -84,8 +85,14 @@ func Logout() gin.HandlerFunc {
 		logout := new(models.LogoutData)
 		token := new(libraries.Token)
 		ginContext.ShouldBindJSON(token)
-		// Todo: add Bearer prefix
-		token.AccessToken = ginContext.Request.Header.Get("Authorization")
+		extractedToken := strings.Split(ginContext.Request.Header.Get("Authorization"), "Bearer ")
+		if len(extractedToken) != 2 {
+			token.AccessToken = ""
+		} else if extractedToken[0] != "Bearer " {
+			token.AccessToken = ""
+		} else {
+			token.AccessToken = extractedToken[1]
+		}
 		if token.RefreshToken == "" {
 			ginContext.JSON(http.StatusBadRequest, gin.H{"message": "No refresh token provied."})
 			return
@@ -113,8 +120,14 @@ func RefreshToken() gin.HandlerFunc {
 	return func(ginContext *gin.Context) {
 		token := new(libraries.Token)
 		ginContext.ShouldBind(token)
-		// Todo: add Bearer prefix
-		token.AccessToken = ginContext.Request.Header.Get("Authorization")
+		extractedToken := strings.Split(ginContext.Request.Header.Get("Authorization"), "Bearer ")
+		if len(extractedToken) != 2 {
+			token.AccessToken = ""
+		} else if extractedToken[0] != "Bearer " {
+			token.AccessToken = ""
+		} else {
+			token.AccessToken = extractedToken[1]
+		}
 		if token.RefreshToken == "" {
 			ginContext.JSON(http.StatusBadRequest, gin.H{"message": "No refresh token provied."})
 			return
@@ -150,6 +163,19 @@ func RefreshToken() gin.HandlerFunc {
 	}
 }
 
+// TokenVerification endpiont
+func TokenVerification() gin.HandlerFunc {
+	return func(ginContext *gin.Context) {
+		username := helpers.GetUsername(ginContext)
+		if username != "anonymous" {
+			ginContext.Status(http.StatusOK)
+		} else {
+			ginContext.Status(http.StatusUnauthorized)
+		}
+	}
+}
+
+// PasswordUpdate endpoint
 func PasswordUpdate() gin.HandlerFunc {
 	return func(ginContext *gin.Context) {
 		passwordForm := new(passwordUpdate)

@@ -1,0 +1,171 @@
+<html>
+
+<head>
+    <link href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900" rel="stylesheet">
+    <link href="https://cdn.materialdesignicons.com/5.4.55/css/materialdesignicons.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.css" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, minimal-ui">
+</head>
+<v-app id="app">
+    $gin{template "navbar" .}
+    <v-main>
+        $gin{template "home" .}
+    </v-main>
+</v-app>
+
+</html>
+
+<script src="https://cdn.jsdelivr.net/npm/vue@2.x"></script>
+<script src="https://cdn.jsdelivr.net/npm/vuetify@2.x"></script>
+<script src="https://unpkg.com/vuex@2.x"></script>
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<script>
+    // helpers
+    function errorResponseAlet(error) {
+        if (error.response) {
+            const responseStatus = error.response.status
+            if (error.response.data.detail) {
+                alert(error.response.data.detail)
+            } else if (responseStatus === 400) {
+                alert('Invalid data is sent to server. Please try again.')
+            } else if (responseStatus === 401) {
+                alert('Authorization failed. The authenticated user is not allowed to perform this action or the request is made by anonymous user.')
+            } else if (responseStatus === 403) {
+                alert('Permission failed. This action is not allowed.')
+            } else if (responseStatus === 404) {
+                alert('Requested url not found. Please report the issue to admin.')
+            } else if (responseStatus === 405) {
+                alert('Requested method is not allow. Please report the issue to admin.')
+            } else if (responseStatus === 500) {
+                alert('Internal server error. Please report the issue to admin.')
+            }
+        } else {
+            alert(error)
+            throw new Error(error)
+        }
+    }
+
+    async function requestHeader() {
+        let user = JSON.parse(localStorage.getItem('user'))
+        if (user && user.token) {
+            try {
+                await axios.get('/api/token/verify')
+                return { 'Authorization': 'Bearer ' + user.token.accessToken }
+            } catch {
+                try {
+                    const response = await axios.post('/api/token/verify', {refresh_token: user.token.refreshToken})
+                    user.token.accessToken = response.data.token['access_token']
+                    localStorage.setItem('user', JSON.stringify(user))
+                    return { 'Authorization': 'Bearer ' + user.token.accessToken }
+                } catch {
+                    alert('Authentication token is expired. User has been automatically logout.')
+                    return {}
+                }
+            }
+        } else {
+            return {}
+        }
+    }
+
+
+    const projectState = () => ({
+        allProjects: []
+    })
+    const projectGetters = {
+        allProjects(state) {
+            return state.allProjects
+        }
+    }
+
+    const project = {
+        namespaced: true,
+        state: projectState,
+        getters: projectGetters
+
+    }
+
+    new Vue({
+        el: '#app',
+        store: new Vuex.Store({
+            modules: {
+                project
+            }
+        }),
+        vuetify: new Vuetify({
+            theme: {
+                themes: {
+                    dark: {
+                        primary: '#9A1414',
+                        accent: '#9F3333',
+                        secondary: '#393636'
+                    },
+                    light: {
+                        primary: '#9A1414',
+                        accent: '#9F3333',
+                        secondary: '#B9B3B3'
+                    }
+                }
+            }
+        }),
+        data: () => ({
+            projectsPage: 1,
+            navigationDrawer: false
+        }),
+        computed: {
+            ...Vuex.mapGetters('project', ['allProjects']),
+            // navbar
+            logoLeftMargin() {
+                if (this.$vuetify.breakpoint.width >= 1200) {
+                    return 0.28 * this.$vuetify.breakpoint.width
+                } else if (this.$vuetify.breakpoint.width < 1200 && this.$vuetify.breakpoint.width >= 900) {
+                    return 0.24 * this.$vuetify.breakpoint.width
+                } else if (this.$vuetify.breakpoint.width < 900 && this.$vuetify.breakpoint.width >= 800) {
+                    return 0.20 * this.$vuetify.breakpoint.width
+                } else {
+                    return 0.20 * this.$vuetify.breakpoint.width
+                }
+            },
+            // homepage
+            projectCols() {
+                switch (this.$vuetify.breakpoint.name) {
+                    case 'xs': return 6
+                    case 'sm': return 4
+                    case 'md': return 4
+                    case 'lg': return 3
+                    case 'xl': return 3
+                    default: return 3
+                }
+            },
+            projectNameLimit() {
+                switch (this.$vuetify.breakpoint.name) {
+                    case 'xs': return 10
+                    case 'sm': return 15
+                    case 'md': return 15
+                    case 'lg': return 20
+                    case 'xl': return 20
+                    default: return 20
+                }
+            },
+            projectPerPage() {
+                switch (this.$vuetify.breakpoint.name) {
+                    case 'xs': return 2
+                    case 'sm': return 3
+                    case 'md': return 3
+                    case 'lg': return 4
+                    case 'xl': return 4
+                    default: return 4
+                }
+            },
+            projectMemberLimit() {
+                switch (this.$vuetify.breakpoint.name) {
+                    case 'xs': return 20
+                    case 'sm': return 41
+                    case 'md': return 41
+                    case 'lg': return 41
+                    case 'xl': return 41
+                    default: return 41
+                }
+            }
+        }
+    })
+</script>
