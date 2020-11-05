@@ -21,7 +21,7 @@
 <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 <script>
     // helpers
-    function errorResponseAlet(error) {
+    function errorResponseAlert(error) {
         if (error.response) {
             const responseStatus = error.response.status
             if (error.response.data.detail) {
@@ -49,16 +49,18 @@
         let user = JSON.parse(localStorage.getItem('user'))
         if (user && user.token) {
             try {
-                await axios.get('/api/token/verify')
+                await axios.get('/api/authentication/token/verify', {headers: { 'Authorization': 'Bearer ' + user.token.accessToken }})
                 return { 'Authorization': 'Bearer ' + user.token.accessToken }
             } catch {
                 try {
-                    const response = await axios.post('/api/token/verify', {refresh_token: user.token.refreshToken})
+                    const response = await axios.post('/api/authentication/token/refresh', { refresh_token: user.token.refreshToken }, { headers: { 'Authorization': 'Bearer ' + user.token.accessToken } })
                     user.token.accessToken = response.data.token['access_token']
                     localStorage.setItem('user', JSON.stringify(user))
                     return { 'Authorization': 'Bearer ' + user.token.accessToken }
                 } catch {
                     alert('Authentication token is expired. User has been automatically logout.')
+                    localStorage.removeItem('user')
+                    this.store.commit('logout')
                     return {}
                 }
             }
@@ -67,9 +69,86 @@
         }
     }
 
-
+    // authentication store
+    const user = JSON.parse(localStorage.getItem('user'));
+    const initialState = user
+        ? { loggedIn: true, user }
+        : { loggedIn: false, user: null };
+    const authenticationState = () => ({ ...initialState })
+    const authenticationGetters = {
+        getAuthenticationStatus(state) {
+            return state.loggedIn
+        },
+        getUser(state) {
+            return state.user
+        }
+    }
+    const authenticationActions = {
+        async login({ commit }, { id, password }) {
+            try {
+                const response = await axios.post('/api/authentication/login/', { id, password })
+                const user = {
+                    token: {
+                        accessToken: response.data.token['access_token'],
+                        refreshToken: response.data.token['refresh_token']
+                    }
+                }
+                localStorage.setItem('user', JSON.stringify(user))
+                commit('loginSuccess', user)
+            } catch (error) {
+                commit('loginFailed', user)
+                errorResponseAlert(error)
+            }
+        },
+        async logout({ commit, getters }) {
+            try {
+                const response = await axios.post('/api/authentication/logout/', { refresh_token: getters['getUser'].token.refreshToken }, { headers: await requestHeader() })
+                localStorage.removeItem('user')
+                commit('logout')
+            } catch (error) {
+                errorResponseAlert(error)
+            }
+        },
+        async register({ commit }, { username, email, password }) {
+            try {
+                const response = await axios.post('/api/authentication/register/', { username, email, password })
+                const user = {
+                    token: {
+                        accessToken: response.data.token['access_token'],
+                        refreshToken: response.data.token['refresh_token']
+                    }
+                }
+                localStorage.setItem('user', JSON.stringify(user))
+                commit('loginSuccess', user)
+            } catch (error) {
+                errorResponseAlert(error)
+            }
+        }
+    }
+    const authenticationMutations = {
+        loginSuccess(state, user) {
+            state.loggedIn = true;
+            state.user = user;
+        },
+        loginFailed(state) {
+            state.loggedIn = false;
+            state.user = null;
+        },
+        logout(state) {
+            state.loggedIn = false;
+            state.user = null;
+        }
+    }
+    const authenticationStore = {
+        namespaced: true,
+        state: authenticationState,
+        getters: authenticationGetters,
+        actions: authenticationActions,
+        mutations: authenticationMutations
+    }
+    // project store
     const projectState = () => ({
-        allProjects: []
+        allProjects: [{name: "Project 1", user: "John", members: [{ username: "john", first_name: "John", last_name: "Doe" }]}]
     })
     const projectGetters = {
         allProjects(state) {
@@ -77,7 +156,7 @@
         }
     }
 
-    const project = {
+    const projectStore = {
         namespaced: true,
         state: projectState,
         getters: projectGetters
@@ -88,7 +167,8 @@
         el: '#app',
         store: new Vuex.Store({
             modules: {
-                project
+                projectStore,
+                authenticationStore
             }
         }),
         vuetify: new Vuetify({
@@ -109,10 +189,12 @@
         }),
         data: () => ({
             projectsPage: 1,
-            navigationDrawer: false
+            navigationDrawer: false,
+            loginForm: {}
         }),
         computed: {
-            ...Vuex.mapGetters('project', ['allProjects']),
+            ...Vuex.mapGetters('projectStore', ['allProjects']),
+            ...Vuex.mapGetters('authenticationStore', ['getAuthenticationStatus', 'getUser']),
             // navbar
             logoLeftMargin() {
                 if (this.$vuetify.breakpoint.width >= 1200) {
@@ -166,6 +248,9 @@
                     default: return 41
                 }
             }
-        }
+        },
+        methods: {
+            ...Vuex.mapActions('authenticationStore', ['login', 'logout', 'register'])
+        },
     })
 </script>

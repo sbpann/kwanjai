@@ -32,7 +32,7 @@ func setupServer() {
 	config.EmailVerficationLifetime = time.Hour * 24 * 7
 	config.JWTAccessTokenSecretKey, err = libraries.AccessSecretVersion("projects/978676563951/secrets/JWTAccessTokenSecretKey/versions/1")
 	config.JWTRefreshTokenSecretKey, err = libraries.AccessSecretVersion("projects/978676563951/secrets/JWTRefreshTokenSecretKey/versions/1")
-	config.JWTAccessTokenLifetime = time.Hour * 4
+	config.JWTAccessTokenLifetime = time.Minute * 1
 	config.JWTRefreshTokenLifetime = time.Hour * 8
 	if err != nil {
 		log.Fatalln(err)

@@ -88,8 +88,6 @@ func Logout() gin.HandlerFunc {
 		extractedToken := strings.Split(ginContext.Request.Header.Get("Authorization"), "Bearer ")
 		if len(extractedToken) != 2 {
 			token.AccessToken = ""
-		} else if extractedToken[0] != "Bearer " {
-			token.AccessToken = ""
 		} else {
 			token.AccessToken = extractedToken[1]
 		}
@@ -123,8 +121,6 @@ func RefreshToken() gin.HandlerFunc {
 		extractedToken := strings.Split(ginContext.Request.Header.Get("Authorization"), "Bearer ")
 		if len(extractedToken) != 2 {
 			token.AccessToken = ""
-		} else if extractedToken[0] != "Bearer " {
-			token.AccessToken = ""
 		} else {
 			token.AccessToken = extractedToken[1]
 		}
@@ -132,12 +128,12 @@ func RefreshToken() gin.HandlerFunc {
 			ginContext.JSON(http.StatusBadRequest, gin.H{"message": "No refresh token provied."})
 			return
 		}
-		passed, user, _, err := libraries.VerifyToken(token.RefreshToken, "refresh")
+		passed, refreshUsername, _, err := libraries.VerifyToken(token.RefreshToken, "refresh")
 		if err != nil {
 			ginContext.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 			return
 		}
-		if !passed && user != "anonymous" {
+		if !passed && refreshUsername != "anonymous" {
 			var status int
 			if err.Error() == "user not found" {
 				status = http.StatusNotFound
@@ -147,15 +143,15 @@ func RefreshToken() gin.HandlerFunc {
 			ginContext.JSON(status, gin.H{"message": err.Error()})
 			return
 		}
-		_, user, tokenID, err := libraries.VerifyToken(token.AccessToken, "access") // if token is expried here, it's got delete.
-		if user != "anonymous" && err == nil {                                      // user != "anonymous" means token is still valid.
+		_, accessUsername, tokenID, err := libraries.VerifyToken(token.AccessToken, "access") // if token is expried here, it's got delete.
+		if accessUsername != "anonymous" && err == nil {                                      // user != "anonymous" means token is still valid.
 			_, err = libraries.FirestoreDelete("tokens", tokenID)
 			if err != nil {
 				ginContext.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 				return
 			}
 		}
-		newToken, err := libraries.CreateToken("access", user)
+		newToken, err := libraries.CreateToken("access", refreshUsername)
 		token.AccessToken = newToken
 		ginContext.JSON(http.StatusOK, gin.H{
 			"token": token,

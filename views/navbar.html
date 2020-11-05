@@ -34,6 +34,41 @@ $gin{define "navbar"}
     </v-btn>
 </v-app-bar>
 <v-navigation-drawer v-model="navigationDrawer" app temporary right>
-
+    <v-card v-if="!getAuthenticationStatus" height="100%">
+        <v-card-title> Login </v-card-title>
+        <v-card-text>
+            <v-form>
+                <v-text-field v-model="loginForm.id" label="username or email"></v-text-field>
+                <v-text-field v-model="loginForm.password" type="password" label="password"></v-text-field>
+            </v-form>
+            <v-card-actions class="justify-center">
+                <v-btn text outlined color="success" @click="login({id: loginForm.id, password: loginForm.password})">
+                    Login
+                </v-btn>
+                <v-btn text outlined color="info">
+                    Registeration
+                </v-btn>
+            </v-card-actions>
+            <v-card-subtitle class="pb-0 text-center">
+                using social media account
+            </v-card-subtitle>
+            <v-card-actions class="justify-center">
+                <v-btn icon>
+                    <v-icon>mdi-facebook</v-icon>
+                </v-btn>
+                <v-btn icon>
+                    <v-icon>mdi-google</v-icon>
+                </v-btn>
+            </v-card-actions>
+        </v-card-text>
+    </v-card>
+    <v-card v-else>
+        <v-card-title> Welcome </v-card-title>
+        <v-card-actions class="justify-center"></v-card-actions>
+        <v-btn text outlined color="error" @click="logout()">
+            Logout
+        </v-btn>
+        </v-card-actions>
+    </v-card>
 </v-navigation-drawer>
 $gin{end}

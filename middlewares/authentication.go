@@ -20,8 +20,6 @@ func JWTAuthorization() gin.HandlerFunc {
 		extractedToken := strings.Split(ginContext.Request.Header.Get("Authorization"), "Bearer ")
 		if len(extractedToken) != 2 {
 			token = ""
-		} else if extractedToken[0] != "Bearer " {
-			token = ""
 		} else {
 			token = extractedToken[1]
 		}
