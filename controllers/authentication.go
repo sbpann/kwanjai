@@ -34,7 +34,7 @@ func Login() gin.HandlerFunc {
 		}
 		token := new(libraries.Token)
 		token.Initialize(username)
-		ginContext.JSON(status, gin.H{"token": token})
+		ginContext.JSON(status, gin.H{"message": "Logged in sucessfully", "token": token})
 	}
 }
 
@@ -82,6 +82,7 @@ func Register() gin.HandlerFunc {
 // Logout endpoint
 func Logout() gin.HandlerFunc {
 	return func(ginContext *gin.Context) {
+		username := helpers.GetUsername(ginContext)
 		logout := new(models.LogoutData)
 		token := new(libraries.Token)
 		ginContext.ShouldBindJSON(token)
@@ -106,9 +107,16 @@ func Logout() gin.HandlerFunc {
 			ginContext.JSON(http.StatusUnauthorized, gin.H{"message": "Token verification failed."})
 			return
 		}
-		go libraries.FirestoreDelete("tokens", <-accessTokenID)
-		go libraries.FirestoreDelete("tokens", <-refreshTokenID)
-
+		libraries.FirestoreDelete("tokens", <-accessTokenID)
+		libraries.FirestoreDelete("tokens", <-refreshTokenID)
+		tokenSearch, _ := libraries.FirestoreSearch("tokens", "user", "==", username)
+		if len(tokenSearch) == 0 {
+			_, err := libraries.FirestoreUpdateField("users", username, "IsActive", false)
+			if err != nil {
+				ginContext.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+				return
+			}
+		}
 		ginContext.JSON(200, gin.H{"message": "User logged out successfully."})
 	}
 }
@@ -128,19 +136,13 @@ func RefreshToken() gin.HandlerFunc {
 			ginContext.JSON(http.StatusBadRequest, gin.H{"message": "No refresh token provied."})
 			return
 		}
-		passed, refreshUsername, _, err := libraries.VerifyToken(token.RefreshToken, "refresh")
+		_, refreshUsername, _, err := libraries.VerifyToken(token.RefreshToken, "refresh")
 		if err != nil {
-			ginContext.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
-			return
-		}
-		if !passed && refreshUsername != "anonymous" {
-			var status int
-			if err.Error() == "user not found" {
-				status = http.StatusNotFound
-			} else {
-				status = http.StatusInternalServerError
+			if refreshUsername == "anonymous" {
+				ginContext.JSON(http.StatusUnauthorized, gin.H{"message": err.Error()})
+				return
 			}
-			ginContext.JSON(status, gin.H{"message": err.Error()})
+			ginContext.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 			return
 		}
 		_, accessUsername, tokenID, err := libraries.VerifyToken(token.AccessToken, "access") // if token is expried here, it's got delete.

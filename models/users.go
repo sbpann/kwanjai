@@ -20,8 +20,8 @@ type User struct {
 	IsActive       bool      `json:"is_active"`
 	JoinedDate     time.Time `json:"joined_date"`
 	ProfilePicture string    `json:"profile_picture"`
-	Plan           string
-	Projects       int
+	Plan           string    `json:"plan"`
+	Projects       int       `json:"projects"`
 }
 
 // Register user method.

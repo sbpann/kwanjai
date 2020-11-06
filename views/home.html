@@ -1,42 +1,137 @@
 $gin{define "home"}
 <v-container id="home">
-    <v-row>
-        <v-container class="text-h2">
-            All projects
-        </v-container>
-    </v-row>
-
-    <v-row>
-        <v-col
-            v-for="project in allProjects.filter((element, index) => {return index+1 >= 1+((projectsPage-1)*projectPerPage) && index+1 <= projectsPage*projectPerPage})"
-            :key="project.id" :cols="projectCols">
-            <v-card height="400px">
-                <v-card-title>
-                    {{ (project.name.substring(0, projectNameLimit) + (project.name.length > projectNameLimit ? '...' : '')) }}
-                </v-card-title>
-                <v-card-subtitle>
-                    {{ project.user }}
-                </v-card-subtitle>
-                <v-card-text>
-                    <v-tooltip
-                        v-for="(members, index) in project.members.filter((element, index) => {return index<(projectMemberLimit+1)})"
-                        :key="index" bottom>
-                        <template #activator="{ on, attrs }">
-                            <v-avatar size="40" v-bind="attrs" v-on="on">
-                                <v-img v-if="index < projectMemberLimit"
-                                    src="https://storage.googleapis.com/kwanjai-a3803.appspot.com/anonymous.png" />
-                                <span v-else>{{ `+${project.members.length-projectMemberLimit}` }}</span>
-                            </v-avatar>
-                        </template>
-                        <!-- index < 41 detects error for Parsing error: invalid-first-character-of-tag-name eslint-plugin-vue issue #370-->
-                        {{ projectMemberLimit > index ? `${members.firstname} ${members.lastname}` : `+${project.members.length-projectMemberLimit}` }}
-                    </v-tooltip>
-                </v-card-text>
-            </v-card>
-        </v-col>
-    </v-row>
-    <v-row>
-        <v-pagination v-model="projectsPage" :length="Math.ceil(allProjects.length / projectPerPage)" />
-    </v-row>
+    <template v-if="getAuthenticationStatus">
+        <template v-if="projectsAreFetched">
+            <v-row>
+                <v-container class="text-h2">
+                    All projects
+                </v-container>
+            </v-row>
+            <v-row no-gutters justify="end">
+                <v-col cols="12" align="end">
+                    <v-btn @click="projectCreateFormIsActivated = true">New project</v-btn>
+                </v-col>
+            </v-row>
+            <v-dialog v-model="projectCreateFormIsActivated" hide-overlay max-width="500px"
+                transition="dialog-transition">
+                <v-card>
+                    <v-form id="projectCreateForm"
+                        @submit.prevent="projectCreateFormIsActivated = false, addProject({name: projectCreateForm.name})">
+                        <v-card-title class="text-h6 pb-0">
+                            Project Name
+                        </v-card-title>
+                        <v-card-text>
+                            <v-text-field required v-model="projectCreateForm.name" label="Project Name"></v-text-field>
+                        </v-card-text>
+                    </v-form>
+                    <v-card-actions class="justify-center">
+                        <v-btn text outlined type="submit" form="projectCreateForm" color="info">add</v-btn>
+                    </v-card-actions>
+                </v-card>
+            </v-dialog>
+            <v-row>
+                <v-col
+                    v-for="project in allProjects.filter((element, index) => {return index+1 >= 1+((projectsPage-1)*projectPerPage) && index+1 <= projectsPage*projectPerPage})"
+                    :key="project.id" :cols="projectCols">
+                    <v-card height="400px">
+                        <v-card-actions class="pb-0 justify-end">
+                            <v-btn v-if="project.id" x-small color="error" @click="removeProject(project.id)">delete</v-btn>
+                            <v-btn v-if="!project.id" loading  x-small color="success">loding</v-btn>
+                        </v-card-actions>
+                        <v-card-title class="pt-0">
+                            {{ (project.name.substring(0, projectNameLimit) + (project.name.length > projectNameLimit ? '...' : '')) }}
+                        </v-card-title>
+                        <v-card-subtitle>
+                            Owner: {{ project.user }}
+                        </v-card-subtitle>
+                        <v-card-text>
+                            <v-tooltip
+                                v-for="(members, index) in project.members.filter((element, index) => {return index<(projectMemberLimit+1)})"
+                                :key="index" bottom>
+                                <template #activator="{ on, attrs }">
+                                    <v-avatar size="40" v-bind="attrs" v-on="on">
+                                        <img v-if="index < projectMemberLimit"
+                                            :src="`https://storage.googleapis.com/kwanjai-a3803.appspot.com/${members}.png`"
+                                            @error="defaultProfilePicture" />
+                                        <span v-else>{{ `+${project.members.length-projectMemberLimit}` }}</span>
+                                    </v-avatar>
+                                </template>
+                                <!-- index < 41 detects error for Parsing error: invalid-first-character-of-tag-name eslint-plugin-vue issue #370-->
+                                {{ projectMemberLimit > index ? `${members}` : `+${project.members.length-projectMemberLimit}` }}
+                            </v-tooltip>
+                        </v-card-text>
+                    </v-card>
+                </v-col>
+            </v-row>
+            <v-row>
+                <v-pagination v-model="projectsPage" :length="Math.ceil(allProjects.length / projectPerPage)" />
+            </v-row>
+        </template>
+        <template v-else>
+            <v-progress-linear indeterminate></v-progress-linear>
+        </template>
+    </template>
+    <template v-else>
+        <v-row justify="center">
+            <v-col cols="12" align="center">
+                <p :class="$vuetify.breakpoint.smAndDown ? 'text-h2' : 'text-h1'">Welcome</p>
+            </v-col>
+            <v-col :cols="$vuetify.breakpoint.smAndDown ? 6 : 4">
+                <v-card height="220px">
+                    <v-card-title>
+                        <v-chip :x-large="!$vuetify.breakpoint.smAndDown" label :class="$vuetify.breakpoint.smAndDown ? 'black white--text' : 'text-h4 black white--text'">Starter</v-chip>
+                    </v-card-title>
+                    <v-card-subtitle :class="$vuetify.breakpoint.smAndDown ? 'text-caption' : 'text-h6'">
+                        free
+                    </v-card-subtitle>
+                    <v-card-text :class="$vuetify.breakpoint.smAndDown ? 'text-caption' : 'text-h6'">
+                        <ul>
+                            <li>1 project
+                            </li>
+                            <li>2 boards per projects</li>
+                        </ul>
+                    </v-card-text>
+                </v-card>
+            </v-col>
+            <v-col :cols="$vuetify.breakpoint.smAndDown ? 6 : 4">
+                <v-card height="220px">
+                    <v-card-title class="text-h3">
+                        <v-chip :x-large="!$vuetify.breakpoint.smAndDown" label :class="$vuetify.breakpoint.smAndDown ? 'blue darken-4 white--text' : 'text-h4 blue darken-4 white--text'">Plus</v-chip>
+                    </v-card-title>
+                    <v-card-subtitle :class="$vuetify.breakpoint.smAndDown ? 'text-caption' : 'text-h6'">
+                        $1/mounth
+                    </v-card-subtitle>
+                    <v-card-text :class="$vuetify.breakpoint.smAndDown ? 'text-caption' : 'text-h6'">
+                        <ul>
+                            <li>4 projects
+                            </li>
+                            <li>3 boards per projects</li>
+                        </ul>
+                    </v-card-text>
+                </v-card>
+            </v-col>
+            <v-col :cols="$vuetify.breakpoint.smAndDown ? 6 : 4">
+                <v-card height="220px">
+                    <v-card-title class="text-h3">
+                        <v-chip :x-large="!$vuetify.breakpoint.smAndDown" label :class="$vuetify.breakpoint.smAndDown ? 'primary white--text' : 'text-h4 primary white--text'">Pro</v-chip>
+                    </v-card-title>
+                    <v-card-subtitle :class="$vuetify.breakpoint.smAndDown ? 'text-caption' : 'text-h6'">
+                        $4/mounth
+                    </v-card-subtitle>
+                    <v-card-text :class="$vuetify.breakpoint.smAndDown ? 'text-caption' : 'text-h6'">
+                        <ul>
+                            <li>unlimited projects
+                            </li>
+                            <li>unlimited boards per projects</li>
+                        </ul>
+                    </v-card-text>
+                </v-card>
+            </v-col>
+            <v-col cols="12" align="center">
+                <p :class="$vuetify.breakpoint.smAndDown ? 'text-h6' : 'text-h4'">Please <a @click="navigationDrawer = true">login</a> or <a
+                        @click="registrationFormIsActivated = true">register</a> to continue</p>
+            </v-col>
+        </v-row>
+    </template>
 </v-container>
 $gin{end}

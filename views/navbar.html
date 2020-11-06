@@ -1,53 +1,92 @@
 $gin{define "navbar"}
 <v-app-bar id="navbar" app dense color="primary">
-    <v-btn :class="$vuetify.breakpoint.smAndUp ? 'mr-2' : ''" @click="
-              $vuetify.theme.dark = !$vuetify.theme.dark;
-            ">
-        <v-icon>{{ !$vuetify.theme.dark ? "mdi-white-balance-sunny" : "mdi-moon-waning-crescent" }}</v-icon>
-    </v-btn>
-    <v-btn :class="$vuetify.breakpoint.smAndUp ? 'mr-2' : ''" to="/">
-        <v-icon>mdi-home</v-icon>
-    </v-btn>
-    <v-menu offset-y>
-        <template #activator="{ on, attrs }">
-            <v-btn v-bind="attrs" v-on="on">
-                <v-icon left>
-                    mdi-file-document-multiple
-                </v-icon>
-                Projects
+    <v-row no-gutters>
+        <v-col :cols="$vuetify.breakpoint.smAndUp ? 3 : 10">
+            <v-btn :class="$vuetify.breakpoint.smAndUp ? 'mr-2' : ''" @click="
+                      $vuetify.theme.dark = !$vuetify.theme.dark;
+                    ">
+                <v-icon>{{ !$vuetify.theme.dark ? "mdi-white-balance-sunny" : "mdi-moon-waning-crescent" }}</v-icon>
             </v-btn>
-        </template>
-        <v-list>
-            <v-list-item v-for="project in allProjects" :key="project.id">
-                <v-list-item-title>{{ project.name.substring(0, 16) + (project.name.length > 16 ? '...' : '' ) }}
-                </v-list-item-title>
-            </v-list-item>
-        </v-list>
-    </v-menu>
-    <v-container v-if="$vuetify.breakpoint.width > 800" :style="`margin-left: ${logoLeftMargin}px`">
-        <v-toolbar-title class="font-weight-medium white--text">
-            K W A N J A I
-        </v-toolbar-title>
-    </v-container>
-    <v-btn @click="navigationDrawer = !navigationDrawer">
-        <v-icon>mdi-account</v-icon>
-    </v-btn>
+            <v-btn :class="$vuetify.breakpoint.smAndUp ? 'mr-2' : ''" to="/">
+                <v-icon>mdi-home</v-icon>
+            </v-btn>
+            <v-menu offset-y v-if="getAuthenticationStatus">
+                <template #activator="{ on, attrs }">
+                    <v-btn v-bind="attrs" v-on="on">
+                        <v-icon left>
+                            mdi-file-document-multiple
+                        </v-icon>
+                        Projects
+                    </v-btn>
+                </template>
+                <v-list>
+                    <v-list-item v-for="project in allProjects" :key="project.id">
+                        <v-list-item-title>
+                            {{ project.name.substring(0, 16) + (project.name.length > 16 ? '...' : '' ) }}
+                        </v-list-item-title>
+                    </v-list-item>
+                </v-list>
+            </v-menu>
+        </v-col>
+        <v-col cols="6" v-if="$vuetify.breakpoint.smAndUp">
+            <v-container fill-height class="pa-0">
+                <v-toolbar-title class="font-weight-medium white--text ma-auto">
+                    K W A N J A I
+                </v-toolbar-title>
+            </v-container>
+        </v-col>
+        <v-col :cols="$vuetify.breakpoint.smAndUp ? 3 : 2" align="end">
+            <v-btn @click="navigationDrawer = !navigationDrawer">
+                <v-icon>mdi-account</v-icon>
+            </v-btn>
+        </v-col>
+    </v-row>
 </v-app-bar>
 <v-navigation-drawer v-model="navigationDrawer" app temporary right>
-    <v-card v-if="!getAuthenticationStatus" height="100%">
+    <v-card v-if="!getAuthenticationStatus & !clickedRegister" height="100%">
         <v-card-title> Login </v-card-title>
         <v-card-text>
-            <v-form>
+            <v-form id="loginForm"
+                @submit.prevent="clickedLogin = true; loginAndFecth(loginForm.id, loginForm.password);">
                 <v-text-field v-model="loginForm.id" label="username or email"></v-text-field>
                 <v-text-field v-model="loginForm.password" type="password" label="password"></v-text-field>
             </v-form>
             <v-card-actions class="justify-center">
-                <v-btn text outlined color="success" @click="login({id: loginForm.id, password: loginForm.password})">
+                <v-btn type="submit" form="loginForm" :loading="clickedLogin" text outlined color="success">
                     Login
                 </v-btn>
-                <v-btn text outlined color="info">
-                    Registeration
+                <v-spacer></v-spacer>
+                <v-btn text outlined color="info" @click="registrationFormIsActivated = true">
+                    Register
                 </v-btn>
+                <v-dialog v-model="registrationFormIsActivated" persistent max-width="600px">
+                    <v-card>
+                        <v-card-title>
+                            Registration
+                        </v-card-title>
+                        <v-card-text>
+                            <v-form id="registrationForm"
+                                @submit.prevent="clickedRegister = true; registerAndFecth(registrationForm.username, registrationForm.email, registrationForm.password); registrationFormIsActivated = false">
+                                <v-text-field v-model="registrationForm.username" label="Username" required>
+                                </v-text-field>
+                                <v-text-field v-model="registrationForm.email" label="Email" required></v-text-field>
+                                <v-text-field v-model="registrationForm.password" label="Password" type="password"
+                                    required>
+                                </v-text-field>
+                            </v-form>
+                        </v-card-text>
+                        <v-card-actions class="px-5">
+                            <v-btn color="error" text outlined @click="registrationFormIsActivated = false">
+                                Close
+                            </v-btn>
+                            <v-spacer></v-spacer>
+                            <v-btn text outlined color="success" type="submit" form="registrationForm">
+                                Register
+                            </v-btn>
+                        </v-card-actions>
+                    </v-card>
+
+                </v-dialog>
             </v-card-actions>
             <v-card-subtitle class="pb-0 text-center">
                 using social media account
@@ -62,12 +101,62 @@ $gin{define "navbar"}
             </v-card-actions>
         </v-card-text>
     </v-card>
-    <v-card v-else>
-        <v-card-title> Welcome </v-card-title>
-        <v-card-actions class="justify-center"></v-card-actions>
-        <v-btn text outlined color="error" @click="logout()">
-            Logout
-        </v-btn>
+    <v-card v-if="clickedRegister & !getAuthenticationStatus" height="100%">
+        <v-container fill-height>
+            <v-row>
+                <v-col cols="12" align="center">
+                    <v-progress-circular :size="50" :width="2" indeterminate color="primary"></v-progress-circular>
+                </v-col>
+                <v-col cols="12" align="center">
+                    <span>Loading...</span>
+                </v-col>
+            </v-row>
+        </v-container>
+    </v-card>
+    <v-card v-if="getAuthenticationStatus" height="100%">
+        <v-card-title class="justify-center pb-0">
+            <p class="text-h6">
+                Welcome!
+            </p>
+        </v-card-title>
+        <v-container class="pa-0 text-center">
+            <v-avatar size="100">
+                <v-img :src="getUser.profile.profile_picture" />
+            </v-avatar>
+        </v-container>
+        <v-card-title class="justify-center py-0">
+            <p class="text-h6">
+                {{ getUser.profile.firstname !== "" && getUser.profile.lastname !== "" ? `${getUser.profile.firstname} ${getUser.profile.lastname}` : getUser.profile.username }}
+            </p>
+        </v-card-title>
+        <v-card-subtitle class="text-center py-0">
+            <v-chip :color="getUser.profile.is_verified ? 'success' : ''" x-small>
+                {{ getUser.profile.is_verified ? 'verified' : 'not verified' }}
+            </v-chip>
+            <p>
+                {{ getUser.profile.email }}
+            </p>
+        </v-card-subtitle>
+        <v-card-text>
+            <v-row no-gutters>
+                <v-col cols="4">
+                    Plan :
+                </v-col>
+                <v-col cols="8">
+                    {{ getUser.profile.plan }}
+                </v-col>
+                <v-col cols="4">
+                    Projects :
+                </v-col>
+                <v-col cols="8">
+                    {{ getUser.profile.projects }}
+                </v-col>
+            </v-row>
+        </v-card-text>
+        <v-card-actions class="justify-center">
+            <v-btn text outlined :loading="clickedLogout" color="error" @click="logout(); clickedLogout = true;">
+                Logout
+            </v-btn>
         </v-card-actions>
     </v-card>
 </v-navigation-drawer>

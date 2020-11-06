@@ -23,19 +23,15 @@ func JWTAuthorization() gin.HandlerFunc {
 		} else {
 			token = extractedToken[1]
 		}
-		passed, username, _, err := libraries.VerifyToken(token, "access")
+		passed, username, _, _ := libraries.VerifyToken(token, "access")
 		if !passed {
 			user.MakeAnonymous()
 			ginContext.Set("user", user)
 			return
 		}
-		getUser, err := libraries.FirestoreFind("users", username)
-		if err != nil {
-			ginContext.AbortWithStatus(500)
-			return
-		}
-		projects, _ := libraries.FirestoreSearch("projects", "Members", "array-contains", username)
-		getUser.DataTo(user)
+		user.Username = username
+		user.Finduser()
+		projects, _ := libraries.FirestoreSearch("projects", "User", "==", username)
 		user.Projects = len(projects)
 		ginContext.Set("user", user)
 	}

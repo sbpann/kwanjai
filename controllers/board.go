@@ -27,6 +27,7 @@ func AllBoard() gin.HandlerFunc {
 		}
 		allBoards := []*models.Board{}
 		for _, b := range searchBoards {
+			board := new(models.Board)
 			b.DataTo(board)
 			// check project membership
 			if !helpers.IsProjectMember(username, board.Project) {

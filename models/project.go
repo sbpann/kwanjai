@@ -3,18 +3,21 @@ package models
 import (
 	"kwanjai/libraries"
 	"net/http"
+	"time"
 )
 
 // Project model
 type Project struct {
-	ID      string   `json:"id"`
-	User    string   `json:"username"`
-	Name    string   `json:"name" binding:"required"`
-	Members []string `json:"members"`
+	ID          string    `json:"id"`
+	User        string    `json:"user"`
+	Name        string    `json:"name" binding:"required"`
+	Members     []string  `json:"members"`
+	CreatedDate time.Time `json:"created_date"`
 }
 
 func (project *Project) CreateProject() (int, string, *Project) {
 	project.Members = append(project.Members, project.User)
+	project.CreatedDate = time.Now().Truncate(time.Microsecond)
 	reference, _, err := libraries.FirestoreAdd("projects", project)
 	if err != nil {
 		return http.StatusInternalServerError, err.Error(), nil

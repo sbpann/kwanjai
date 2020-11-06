@@ -52,14 +52,20 @@ func GetTokenPayload(tokenString string, tokenType string, field string) (string
 		}
 		return []byte(secretKey), nil
 	})
-	if err != nil {
+	if token == nil { // if tokenString is not token, jwt.Parse return nil object.
 		return "", false, err
 	}
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
 		return "", false, errors.New("claim failed")
 	}
-	return claims[field].(string), token.Valid, nil
+	var payload string
+	if claims[field] != nil {
+		payload = claims[field].(string)
+	} else {
+		payload = ""
+	}
+	return payload, token.Valid, err // if tokenString is a token but it is not valid, it return token object with token.Valid = false.
 }
 
 // CreateToken returns token (string) and error.
@@ -119,8 +125,8 @@ func (tokenStatus *tokenStatus) createToken(username string, tokenType string, t
 
 // VerifyToken function returns token validiation status (bool), username (string), token UUID (string), error.
 func VerifyToken(tokenString string, tokenType string) (bool, string, string, error) {
-	tokenID, valid, err := GetTokenPayload(tokenString, tokenType, "id")
-	username, _, err := GetTokenPayload(tokenString, tokenType, "user")
+	tokenID, _, _ := GetTokenPayload(tokenString, tokenType, "id")
+	username, valid, err := GetTokenPayload(tokenString, tokenType, "user")
 	if err != nil {
 		if err.Error() == "Token is expired" {
 			FirestoreDelete("tokens", tokenID)

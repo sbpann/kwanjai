@@ -38,6 +38,15 @@ func FirebaseApp() *firebase.App {
 	return app
 }
 
+// FirestoreDB return firestore client and error
+func FirestoreDB() *firestore.Client {
+	firestoreClient, err := FirebaseApp().Firestore(config.Context)
+	if err != nil {
+		log.Println(err)
+	}
+	return firestoreClient
+}
+
 // FirestoreFind by collection and document ID.
 func FirestoreFind(collecttion string, id string) (*firestore.DocumentSnapshot, error) {
 	if collecttion == "" || id == "" {

@@ -24,6 +24,16 @@ func ProfilePicture() gin.HandlerFunc {
 	}
 }
 
+func MyProfile() gin.HandlerFunc {
+	return func(ginContext *gin.Context) {
+		user, _ := ginContext.Get("user") // user always exists
+		ginContext.JSON(http.StatusOK, gin.H{
+			"message": "Get profile successfully",
+			"profile": user,
+		})
+	}
+}
+
 func UpdateProfile() gin.HandlerFunc {
 	return func(ginContext *gin.Context) {
 		profile := new(models.User)
@@ -38,7 +48,6 @@ func UpdateProfile() gin.HandlerFunc {
 		_, _, profile = profile.Finduser()
 		ginContext.JSON(http.StatusOK, gin.H{
 			"message": "Profile updated.",
-			"user":    profile,
 		})
 	}
 }

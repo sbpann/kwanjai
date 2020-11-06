@@ -28,6 +28,7 @@ func AllPost() gin.HandlerFunc {
 		}
 		allPosts := []*models.Post{}
 		for _, p := range searchPosts {
+			post := new(models.Post)
 			p.DataTo(post)
 			// check project membership
 			if helpers.IsProjectMember(username, post.Project) {

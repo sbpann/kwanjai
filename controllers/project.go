@@ -18,9 +18,9 @@ func AllProject() gin.HandlerFunc {
 			ginContext.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 			return
 		}
-		project := new(models.Project)
 		allProjects := []*models.Project{}
 		for _, p := range searchProjects {
+			project := new(models.Project)
 			p.DataTo(project)
 			project.ID = p.Ref.ID
 			allProjects = append(allProjects, project)
