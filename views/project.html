@@ -3,8 +3,11 @@ $gin{template "head" .}
 <v-app id="app">
     $gin{template "navbar" .}
     <v-main>
-        $gin{template "home" .}
+        <v-container>
+            $gin{ .id }
+        </v-container>
     </v-main>
 </v-app>
+
 </html>
 $gin{template "script" .}

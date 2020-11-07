@@ -1,0 +1,401 @@
+$gin{define "script"}
+<script src="https://cdn.jsdelivr.net/npm/vue@2.x"></script>
+<script src="https://cdn.jsdelivr.net/npm/vuetify@2.x"></script>
+<script src="https://unpkg.com/vuex@2.x"></script>
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<script>
+    // helpers
+    function errorResponseAlert(error) {
+        if (error.response) {
+            const responseStatus = error.response.status
+            if (error.response.data.message) {
+                alert(error.response.data.message)
+            } else if (responseStatus === 400) {
+                alert('Invalid data is sent to server. Please try again.')
+            } else if (responseStatus === 401) {
+                alert('Authorization failed. The authenticated user is not allowed to perform this action or the request is made by anonymous user.')
+            } else if (responseStatus === 403) {
+                alert('Permission failed. This action is not allowed.')
+            } else if (responseStatus === 404) {
+                alert('Requested url not found. Please report the issue to admin.')
+            } else if (responseStatus === 405) {
+                alert('Requested method is not allow. Please report the issue to admin.')
+            } else if (responseStatus === 500) {
+                alert('Internal server error. Please report the issue to admin.')
+            }
+        } else {
+            alert(error)
+            throw new Error(error)
+        }
+    }
+
+    async function requestHeader() {
+        let user = JSON.parse(localStorage.getItem('user'))
+        if (user && user.token) {
+            try {
+                await axios.get('/api/authentication/token/verify', { headers: { 'Authorization': 'Bearer ' + user.token.accessToken } })
+                return { 'Authorization': 'Bearer ' + user.token.accessToken }
+            } catch {
+                try {
+                    const response = await axios.post('/api/authentication/token/refresh', { refresh_token: user.token.refreshToken }, { headers: { 'Authorization': 'Bearer ' + user.token.accessToken } })
+                    user.token.accessToken = response.data.token['access_token']
+                    localStorage.setItem('user', JSON.stringify(user))
+                    return { 'Authorization': 'Bearer ' + user.token.accessToken }
+                } catch {
+                    alert('Authentication token is expired. User has been automatically logout.')
+                    localStorage.removeItem('user')
+                    window.location = '/'
+                    return {}
+                }
+            }
+        } else {
+            return {}
+        }
+    }
+
+    // shared store
+    const sharedState = () => ({ allUsernames: [] })
+    const sharedGetters = {
+        allUsernames(state) {
+            return state.allUsernames
+        }
+    }
+    const sharedActions = {
+        async fetchUsernames({ commit }) {
+            try {
+                const response = await axios.get('/api/user/all', { headers: await requestHeader() })
+                commit('setUsername', response.data.usernames)
+            } catch (error) {
+                errorResponseAlert(error)
+            }
+        }
+    }
+    const sharedMutations = {
+        setUsername(state, usernames) {
+            state.allUsernames = usernames
+        }
+    }
+
+    const shared = {
+        namespaced: true,
+        state: sharedState,
+        getters: sharedGetters,
+        mutations: sharedMutations,
+        actions: sharedActions,
+    }
+
+    // authentication store
+    const user = JSON.parse(localStorage.getItem('user'))
+    const initialState = user
+        ? { loggedIn: true, user }
+        : { loggedIn: false, user: null };
+    const authenticationState = () => ({ ...initialState })
+    const authenticationGetters = {
+        getAuthenticationStatus(state) {
+            return state.loggedIn
+        },
+        getUser(state) {
+            return state.user
+        }
+    }
+    const authenticationActions = {
+        async login({ commit }, { id, password }) {
+            try {
+                let response = await axios.post('/api/authentication/login/', { id, password })
+                let user = {
+                    token: {
+                        accessToken: response.data.token['access_token'],
+                        refreshToken: response.data.token['refresh_token']
+                    }
+                }
+                localStorage.setItem('user', JSON.stringify(user))
+                response = await axios.get('/api/user/my_profile', { headers: await requestHeader() })
+                user.profile = response.data.profile
+                localStorage.setItem('user', JSON.stringify(user))
+                commit('loginSuccess', user)
+            } catch (error) {
+                commit('loginFailed')
+                errorResponseAlert(error)
+            }
+        },
+        async logout({ commit, getters }) {
+            await axios.post('/api/authentication/logout/', { refresh_token: getters['getUser'].token.refreshToken }, { headers: await requestHeader() })
+            localStorage.removeItem('user')
+            commit('logout')
+            window.location = '/'
+        },
+        async register({ commit }, { username, email, password }) {
+            try {
+                let response = await axios.post('/api/authentication/register/', { username, email, password })
+                let user = {
+                    token: {
+                        accessToken: response.data.token['access_token'],
+                        refreshToken: response.data.token['refresh_token']
+                    }
+                }
+                localStorage.setItem('user', JSON.stringify(user))
+                response = await axios.get('/api/user/my_profile', { headers: await requestHeader() })
+                user.profile = response.data.profile
+                localStorage.setItem('user', JSON.stringify(user))
+                commit('loginSuccess', user)
+            } catch (error) {
+                errorResponseAlert(error)
+            }
+        },
+        async fecthUserData() {
+            try {
+                const response = await axios.get('/api/user/my_profile', { headers: await requestHeader() })
+                user.profile = response.data.profile
+                localStorage.setItem('user', JSON.stringify(user))
+            } catch (error) {
+                errorResponseAlert(error)
+            }
+        }
+    }
+    const authenticationMutations = {
+        updateUser(state, user) {
+            state.user = user;
+        },
+        loginSuccess(state, user) {
+            state.loggedIn = true;
+            state.user = user;
+        },
+        loginFailed(state) {
+            state.loggedIn = false;
+            state.user = null;
+        },
+        logout(state) {
+            state.loggedIn = false;
+            state.user = null;
+        }
+    }
+    const authentication = {
+        namespaced: true,
+        state: authenticationState,
+        getters: authenticationGetters,
+        actions: authenticationActions,
+        mutations: authenticationMutations
+    }
+    // project store
+    const projectState = () => ({
+        allProjects: [],
+        projectsAreFetched: false
+    })
+    const projectGetters = {
+        allProjects(state) {
+            return state.allProjects.sort((a, b) => { return new Date(b.created_date) - new Date(a.created_date) })
+        },
+        projectsAreFetched(state) {
+            return state.projectsAreFetched
+        },
+        addingProject(state) {
+            return state.addingProject
+        }
+    }
+    const projectActions = {
+        async fetchProjects({ commit }) {
+            try {
+                const response = await axios.get('/api/project/all/', { headers: await requestHeader() })
+                commit('setProjects', response.data.projects)
+            } catch (error) {
+                errorResponseAlert(error)
+            }
+        },
+        async addProject({ commit, dispatch, rootGetters }, { name }) {
+            try {
+                const user = rootGetters['authentication/getUser']
+                const username = user.profile.username
+                commit('addNewProject', { name, user: username, members: [username] })
+                dispatch('updateUserProject', { user, action: "add" })
+                await axios.post('/api/project/new/', { name }, { headers: await requestHeader() })
+                dispatch('fetchProjects')
+            } catch (error) {
+                errorResponseAlert(error)
+                location.reload()
+            }
+        },
+        async removeProject({ commit, dispatch, rootGetters }, id) {
+            try {
+                commit('removeProject', id)
+                const user = rootGetters['authentication/getUser']
+                dispatch('updateUserProject', { user, action: "remove" })
+                await axios.delete('/api/project/delete/', { headers: await requestHeader(), data: { id } })
+                dispatch('fetchProjects')
+            } catch (error) {
+                errorResponseAlert(error)
+                location.reload()
+            }
+        },
+        updateUserProject({ getters, commit }, { user, action }) {
+            if (action === "add") {
+                user.profile.projects = user.profile.projects + 1
+            } else {
+                user.profile.projects = user.profile.projects - 1
+            }
+            commit('authentication/updateUser', user, { root: true })
+        }
+    }
+
+    const projectMutations = {
+        setProjects(state, projects) {
+            state.allProjects = projects;
+            state.projectsAreFetched = true;
+        },
+        addNewProject(state, { name, user, members }) {
+            state.allProjects.unshift({ name, user, members })
+        },
+        removeProject(state, id) {
+            state.allProjects = state.allProjects.filter((element) => { return element.id != id })
+        }
+    }
+    const project = {
+        namespaced: true,
+        state: projectState,
+        getters: projectGetters,
+        mutations: projectMutations,
+        actions: projectActions,
+    }
+
+    new Vue({
+        el: '#app',
+        store: new Vuex.Store({
+            modules: {
+                project,
+                authentication,
+                shared
+            }
+        }),
+        vuetify: new Vuetify({
+            theme: {
+                themes: {
+                    dark: {
+                        primary: '#9A1414',
+                        accent: '#9F3333',
+                        secondary: '#393636'
+                    },
+                    light: {
+                        primary: '#9A1414',
+                        accent: '#9F3333',
+                        secondary: '#B9B3B3'
+                    }
+                }
+            }
+        }),
+        data: () => ({
+            projectsPage: 1,
+            navigationDrawer: false,
+            loginForm: {},
+            clickedLogin: false,
+            clickedLogout: false,
+            clickedRegister: false,
+            projectCreateFormIsActivated: false,
+            projectCreateForm: {},
+            registrationFormIsActivated: false,
+            registrationForm: {},
+            projectUpdateFormIsActivated: false,
+            currentProjectData: {},
+            newProjectData: {}
+        }),
+        computed: {
+            ...Vuex.mapGetters('project', ['allProjects', 'projectsAreFetched', 'addingProject']),
+            ...Vuex.mapGetters('authentication', ['getAuthenticationStatus', 'getUser']),
+            ...Vuex.mapGetters('shared', ['allUsernames']),
+            // navbar
+            // homepage
+            projectCols() {
+                switch (this.$vuetify.breakpoint.name) {
+                    case 'xs': return 6
+                    case 'sm': return 4
+                    case 'md': return 4
+                    case 'lg': return 3
+                    case 'xl': return 3
+                    default: return 3
+                }
+            },
+            projectNameLimit() {
+                switch (this.$vuetify.breakpoint.name) {
+                    case 'xs': return 16
+                    case 'sm': return 16
+                    case 'md': return 20
+                    case 'lg': return 20
+                    case 'xl': return 20
+                    default: return 20
+                }
+            },
+            projectPerPage() {
+                switch (this.$vuetify.breakpoint.name) {
+                    case 'xs': return 2
+                    case 'sm': return 3
+                    case 'md': return 3
+                    case 'lg': return 4
+                    case 'xl': return 4
+                    default: return 4
+                }
+            },
+            projectMemberLimit() {
+                switch (this.$vuetify.breakpoint.name) {
+                    case 'xs': return 20
+                    case 'sm': return 41
+                    case 'md': return 41
+                    case 'lg': return 41
+                    case 'xl': return 41
+                    default: return 41
+                }
+            }
+        },
+        methods: {
+            ...Vuex.mapActions('authentication', ['login', 'logout', 'register', 'fecthUserData']),
+            ...Vuex.mapActions('project', ['fetchProjects', 'addProject', 'removeProject']),
+            ...Vuex.mapActions('shared', ['fetchUsernames']),
+            async loginAndFecth(id, password) {
+                await this.login({ id, password });
+                await this.fetchProjects();
+            },
+            async registerAndFecth(username, email, password) {
+                await this.register({ username, email, password });
+                this.$store.commit('project/setProjects', [])
+            },
+            defaultProfilePicture(event) {
+                event.target.src = "https://storage.googleapis.com/kwanjai-a3803.appspot.com/anonymous.png"
+            },
+            activeprojectUpdateor(projectId) {
+                this.projectUpdateFormIsActivated = true
+                thisProject = this.allProjects.find((project) => { return project.id == projectId })
+                this.currentProjectData.id = thisProject.id
+                this.currentProjectData.name = thisProject.name
+                this.currentProjectData.members = thisProject.members
+                this.newProjectData = { ...this.currentProjectData }
+            },
+            async updateProject() {
+                const nameIsEdited = this.currentProjectData.name !== this.newProjectData.name
+                const memberIsEdited = JSON.stringify(this.currentProjectData.members.sort()) !== JSON.stringify(this.newProjectData.members.sort())
+                const projectIsEdited = nameIsEdited || memberIsEdited
+                if (projectIsEdited) {
+                    try {
+                        await axios.patch('/api/project/update',
+                            {
+                                id: this.newProjectData.id,
+                                name: this.newProjectData.name,
+                                members: this.newProjectData.members
+                            },
+                            {
+                                headers: await requestHeader()
+                            }
+                        )
+                        location.reload()
+                    } catch (error) {
+                        errorResponseAlert(error)
+                    }
+                }
+            }
+        },
+        async created() {
+            if (this.getAuthenticationStatus) {
+                await this.fecthUserData()
+                await this.fetchProjects()
+                await this.fetchUsernames()
+            }
+        },
+    })
+</script>
+$gin{end}

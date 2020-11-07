@@ -74,7 +74,8 @@ func UpdateProject() gin.HandlerFunc {
 		username := helpers.GetUsername(ginContext)
 		project := new(models.Project)
 		ginContext.ShouldBindJSON(project)
-		if project.ID == "" {
+		_, memberIsIncludedOwner := libraries.Find(project.Members, username)
+		if project.ID == "" || !memberIsIncludedOwner {
 			ginContext.JSON(http.StatusBadRequest, gin.H{"message": "Invalid UUID."})
 			return
 		}

@@ -42,6 +42,7 @@ func (project *Project) FindProject() (int, string, *Project) {
 
 func (project *Project) UpdateProject() (int, string, *Project) {
 	_, err := libraries.FirestoreUpdateField("projects", project.ID, "Name", project.Name)
+	_, err = libraries.FirestoreUpdateField("projects", project.ID, "Members", project.Members)
 	if err != nil {
 		return http.StatusInternalServerError, err.Error(), nil
 	}
