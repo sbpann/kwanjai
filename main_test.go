@@ -247,7 +247,13 @@ func TestCreateBoardGetAllProjects(t *testing.T) {
 	assert.Equal(t, http.StatusOK, writer.Code)
 	json.Unmarshal([]byte(writer.Body.String()), &response)
 	allProjects := response["projects"].([]interface{})
-	assert.Equal(t, 0, len(allProjects)) // should return blank array
+	counter := []interface{}{}
+	for _, project := range allProjects {
+		if project.(map[string]interface{})["user"].(string) == "test2" {
+			counter = append(counter, project)
+		}
+	}
+	assert.Equal(t, 0, len(counter)) // should return blank array
 
 	// user test1 get all projects
 	writer = httptest.NewRecorder()
@@ -257,7 +263,13 @@ func TestCreateBoardGetAllProjects(t *testing.T) {
 	assert.Equal(t, http.StatusOK, writer.Code)
 	json.Unmarshal([]byte(writer.Body.String()), &response)
 	allProjects = response["projects"].([]interface{})
-	assert.Equal(t, 1, len(allProjects)) //should return array with one element
+	counter = []interface{}{}
+	for _, project := range allProjects {
+		if project.(map[string]interface{})["user"].(string) == "test1" {
+			counter = append(counter, project)
+		}
+	}
+	assert.Equal(t, 1, len(counter)) //should return array with one element
 
 	_, err := libraries.FirestoreDelete("projects", createdProjectID)
 	assert.Equal(t, nil, err)
