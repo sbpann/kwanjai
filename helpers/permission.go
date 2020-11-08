@@ -14,11 +14,21 @@ func GetUsername(ginContext *gin.Context) string {
 	return username
 }
 
-// GetUserPlan fucntion returns user plan (string).
-func GetUserPlan(ginContext *gin.Context) string {
+// ExceedProjectLimit
+func ExceedProjectLimit(ginContext *gin.Context) bool {
 	user, _ := ginContext.Get("user") // user always exists
-	username := user.(*models.User).Plan
-	return username
+	plan := user.(*models.User).Plan
+	projects := user.(*models.User).Projects
+	switch plan {
+	case "Starter":
+		return !(projects < 1)
+	case "Plus":
+		return !(projects < 3)
+	case "Pro":
+		return false
+	default:
+		return true
+	}
 }
 
 // IsSuperUser fucntion returns superuser status (bool).

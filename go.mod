@@ -12,6 +12,7 @@ require (
 	github.com/go-playground/assert/v2 v2.0.1
 	github.com/google/uuid v1.1.2
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
+	github.com/omise/omise-go v1.0.5
 	github.com/stretchr/testify v1.6.1 // indirect
 	golang.org/x/crypto v0.0.0-20201016220609-9e8e0b390897
 	google.golang.org/api v0.34.0

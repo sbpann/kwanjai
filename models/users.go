@@ -9,19 +9,22 @@ import (
 
 // User model.
 type User struct {
-	Username       string    `json:"username" binding:"required,ne=anonymous"`
-	Email          string    `json:"email" binding:"required,email"`
-	Firstname      string    `json:"firstname"`
-	Lastname       string    `json:"lastname"`
-	Password       string    `json:"password" binding:"required,min=8"`
-	HashedPassword string    `json:",omitempty"`
-	IsSuperUser    bool      `json:"is_superuser"`
-	IsVerified     bool      `json:"is_verified"`
-	IsActive       bool      `json:"is_active"`
-	JoinedDate     time.Time `json:"joined_date"`
-	ProfilePicture string    `json:"profile_picture"`
-	Plan           string    `json:"plan"`
-	Projects       int       `json:"projects"`
+	Username           string    `json:"username" binding:"required,ne=anonymous"`
+	Email              string    `json:"email" binding:"required,email"`
+	Firstname          string    `json:"firstname"`
+	Lastname           string    `json:"lastname"`
+	Password           string    `json:"password" binding:"required,min=8"`
+	HashedPassword     string    `json:",omitempty"`
+	IsSuperUser        bool      `json:"is_superuser"`
+	IsVerified         bool      `json:"is_verified"`
+	IsActive           bool      `json:"is_active"`
+	JoinedDate         time.Time `json:"joined_date"`
+	ProfilePicture     string    `json:"profile_picture"`
+	Plan               string    `json:"plan"`
+	Projects           int       `json:"projects"`
+	CustomerID         string    `json:",omitempty"`
+	SubscriptionID     string    `json:",omitempty"`
+	DateOfSubscription int       `json:"date_of_subscription"`
 }
 
 // Register user method.
@@ -108,7 +111,7 @@ func (user *User) initialize() {
 	user.Plan = "Starter"
 	user.IsSuperUser = false
 	user.IsVerified = false
-	user.JoinedDate = time.Now()
+	user.JoinedDate = time.Now().Truncate(time.Millisecond)
 	user.ProfilePicture = "https://storage.googleapis.com/kwanjai-a3803.appspot.com/anonymous.png"
 }
 
@@ -117,5 +120,6 @@ func (user *User) MakeAnonymous() {
 	user.Username = "anonymous"
 	user.IsSuperUser = false
 	user.IsVerified = false
+	user.IsActive = false
 	user.JoinedDate = time.Now()
 }

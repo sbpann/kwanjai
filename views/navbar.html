@@ -46,59 +46,46 @@ $gin{define "navbar"}
         <v-card-title> Login </v-card-title>
         <v-card-text>
             <v-form id="loginForm"
-                @submit.prevent="clickedLogin = true; loginAndFecth(loginForm.id, loginForm.password);">
+                @submit.prevent="clickedLogin = true; loginAndReload(loginForm.id, loginForm.password);">
                 <v-text-field v-model="loginForm.id" label="username or email"></v-text-field>
                 <v-text-field v-model="loginForm.password" type="password" label="password"></v-text-field>
             </v-form>
-            <v-card-actions class="justify-center">
-                <v-btn type="submit" form="loginForm" :loading="clickedLogin" text outlined color="success">
-                    Login
-                </v-btn>
-                <v-spacer></v-spacer>
-                <v-btn text outlined color="info" @click="registrationFormIsActivated = true">
-                    Register
-                </v-btn>
-                <v-dialog v-model="registrationFormIsActivated" persistent max-width="600px">
-                    <v-card>
-                        <v-card-title>
-                            Registration
-                        </v-card-title>
-                        <v-card-text>
-                            <v-form id="registrationForm"
-                                @submit.prevent="clickedRegister = true; registerAndFecth(registrationForm.username, registrationForm.email, registrationForm.password); registrationFormIsActivated = false">
-                                <v-text-field v-model="registrationForm.username" label="Username" required>
-                                </v-text-field>
-                                <v-text-field v-model="registrationForm.email" label="Email" required></v-text-field>
-                                <v-text-field v-model="registrationForm.password" label="Password" type="password"
-                                    required>
-                                </v-text-field>
-                            </v-form>
-                        </v-card-text>
-                        <v-card-actions class="px-5">
-                            <v-btn color="error" text outlined @click="registrationFormIsActivated = false">
-                                Close
-                            </v-btn>
-                            <v-spacer></v-spacer>
-                            <v-btn text outlined color="success" type="submit" form="registrationForm">
-                                Register
-                            </v-btn>
-                        </v-card-actions>
-                    </v-card>
-
-                </v-dialog>
-            </v-card-actions>
-            <v-card-subtitle class="pb-0 text-center">
-                using social media account
-            </v-card-subtitle>
-            <v-card-actions class="justify-center">
-                <v-btn icon>
-                    <v-icon>mdi-facebook</v-icon>
-                </v-btn>
-                <v-btn icon>
-                    <v-icon>mdi-google</v-icon>
-                </v-btn>
-            </v-card-actions>
         </v-card-text>
+        <v-card-actions class="justify-center">
+            <v-btn type="submit" form="loginForm" :loading="clickedLogin" text outlined color="success">
+                Login
+            </v-btn>
+            <v-spacer></v-spacer>
+            <v-btn text outlined color="info" @click="registrationFormIsActivated = true">
+                Register
+            </v-btn>
+            <v-dialog v-model="registrationFormIsActivated" persistent max-width="600px">
+                <v-card>
+                    <v-card-title>
+                        Registration
+                    </v-card-title>
+                    <v-card-text>
+                        <v-form id="registrationForm"
+                            @submit.prevent="clickedRegister = true; registerAndReload(registrationForm.username, registrationForm.email, registrationForm.password); registrationFormIsActivated = false">
+                            <v-text-field v-model="registrationForm.username" label="Username" required>
+                            </v-text-field>
+                            <v-text-field v-model="registrationForm.email" label="Email" required></v-text-field>
+                            <v-text-field v-model="registrationForm.password" label="Password" type="password" required>
+                            </v-text-field>
+                        </v-form>
+                    </v-card-text>
+                    <v-card-actions class="px-5">
+                        <v-btn color="error" text outlined @click="registrationFormIsActivated = false">
+                            Close
+                        </v-btn>
+                        <v-spacer></v-spacer>
+                        <v-btn text outlined color="success" type="submit" form="registrationForm">
+                            Register
+                        </v-btn>
+                    </v-card-actions>
+                </v-card>
+            </v-dialog>
+        </v-card-actions>
     </v-card>
     <v-card v-if="clickedRegister & !getAuthenticationStatus" height="100%">
         <v-container fill-height>
@@ -141,18 +128,78 @@ $gin{define "navbar"}
                 <v-col cols="4">
                     Plan :
                 </v-col>
-                <v-col cols="8">
+                <v-col cols="3">
                     {{ getUser.profile.plan }}
+                </v-col>
+                <v-col cols="5">
+                    <v-btn v-if="getUser.profile.plan != 'Starter'" color="error" x-small text
+                        @click="unsubrsciptionFormIsActivated = true">
+                        unsubscribe</v-btn>
+                    <v-dialog v-model="unsubrsciptionFormIsActivated" hide-overlay max-width="600px"
+                        transition="dialog-transition">
+                        <v-card>
+                            <v-card-title>
+                                Please accept and confirm before your cancelation
+                            </v-card-title>
+                            <v-card-text>
+                                <ul>
+                                    <li>The plan will be canceled immediately and there is no refund for charged fee.
+                                    </li>
+                                    <li>Your projects and boards will remain in you account until you delete it.</li>
+                                </ul>
+                            </v-card-text>
+                            <v-card-actions>
+                                <v-btn color="error" @click="unsubrsciptionFormIsActivated = false">discard</v-btn>
+                                <v-spacer></v-spacer>
+                                <v-btn color="success" :loading="clickedUnsubscribe" @click="unsubscribe()">accept and confirm</v-btn>
+                            </v-card-actions>
+                        </v-card>
+                    </v-dialog>
                 </v-col>
                 <v-col cols="4">
                     Projects :
                 </v-col>
-                <v-col cols="8">
+                <v-col cols="3">
                     {{ getUser.profile.projects }}
+                </v-col>
+                <v-col cols="5">
+
                 </v-col>
             </v-row>
         </v-card-text>
+        <v-card-subtitle v-if="this.dataFetched && getUser.profile.plan != 'Starter'" class="text-center py-0">
+                {{ `Your next payment is ${nextPayment.toLocaleDateString()}` }}
+        </v-card-subtitle>
+        <v-card-subtitle class="text-center py-0">
+                {{ getUser.profile.plan != 'Pro' ? 'You can upgrade your plan.' : 'Thank you for you subscription!'}}
+        </v-card-subtitle>
+        <v-card-text class="text-center py-0">
+            {{ selectedPlan != '' ? `Price: $${plans.find(element => {return element.name == selectedPlan}).price}/month` : '' }}
+            <v-select hide-details="auto" v-model="selectedPlan" :items="plans.map(element => { return element.name })"
+                class="py-0" />
+        </v-card-text>
         <v-card-actions class="justify-center">
+            <v-form id="checkoutForm" @submit.prevent="subscribe()">
+                <v-btn type="submit" id="checkoutButton" color="info">
+                    {{ getUser.profile.plan != 'Pro' ? 'Upgrade' : 'Change Plan' }}</v-btn>
+            </v-form>
+        </v-card-actions>
+        <v-dialog v-model="clickedsubscribe" hide-overlay persistent max-width="500px" transition="dialog-transition">
+            <v-card>
+                <v-card-text>
+                    <v-row>
+                        <v-col cols="12" align="center">
+                            <v-progress-circular :size="50" :width="2" indeterminate color="primary">
+                            </v-progress-circular>
+                        </v-col>
+                        <v-col cols="12" align="center">
+                            <span>Updating...</span>
+                        </v-col>
+                    </v-row>
+                </v-card-text>
+            </v-card>
+        </v-dialog>
+        <v-card-actions class="justify-center pt-8">
             <v-btn text outlined :loading="clickedLogout" color="error" @click="logout(); clickedLogout = true;">
                 Logout
             </v-btn>

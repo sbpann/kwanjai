@@ -20,4 +20,6 @@ var (
 	JWTRefreshTokenLifetime      time.Duration
 	Context                      context.Context
 	DefaultAuthenticationBackend gin.HandlerFunc
+	OmisePublicKey               string
+	OmiseSecretKey               string
 )

@@ -9,6 +9,7 @@ import (
 	"kwanjai/libraries"
 	"kwanjai/middlewares"
 	"log"
+	"net/http"
 	"os"
 	"time"
 
@@ -33,6 +34,8 @@ func setupServer() {
 	config.JWTRefreshTokenSecretKey, err = libraries.AccessSecretVersion("projects/978676563951/secrets/JWTRefreshTokenSecretKey/versions/1")
 	config.JWTAccessTokenLifetime = time.Hour * 2
 	config.JWTRefreshTokenLifetime = time.Hour * 8
+	config.OmisePublicKey = "pkey_test_5lr43m5s2v9k5iohgnp"
+	config.OmiseSecretKey = "skey_test_5lr43m5sdusunx0goly"
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -51,8 +54,7 @@ func getServer(mode string) *gin.Engine {
 	ginEngine := gin.Default()
 	ginEngine.Use(config.DefaultAuthenticationBackend)
 	api := ginEngine.Group("/api")
-	// authentication := api.Group("/authentication") // uncomment this for built-in frontend mode
-	authentication := ginEngine.Group("/authentication") // uncomment this for dedicated frontend mode
+	authentication := api.Group("/authentication")
 	authentication.POST("/login", controllers.Login())
 	authentication.POST("/register", controllers.Register())
 	authentication.POST("/logout", middlewares.AuthenticatedOnly(), controllers.Logout())
@@ -63,8 +65,9 @@ func getServer(mode string) *gin.Engine {
 	user := api.Group("/user")
 	user.GET("/my_profile", middlewares.AuthenticatedOnly(), controllers.MyProfile())
 	user.GET("/all", middlewares.AuthenticatedOnly(), controllers.AllUsernames())
-	// project := api.Group("/project") // uncomment this for built-in frontend mode
-	project := ginEngine.Group("/project") // uncomment this for dedicated frontend mode
+	user.POST("/pay", middlewares.AuthenticatedOnly(), controllers.UpgradePlan())
+	user.POST("/unsubscribe", middlewares.AuthenticatedOnly(), controllers.Unsubscribe())
+	project := api.Group("/project")
 	project.Use(middlewares.AuthenticatedOnly())
 	{
 		project.GET("/all", controllers.AllProject())
@@ -73,8 +76,7 @@ func getServer(mode string) *gin.Engine {
 		project.PATCH("/update", controllers.UpdateProject())
 		project.DELETE("/delete", controllers.DeleteProject())
 	}
-	// board := api.Group("/board") // uncomment this for built-in frontend mode
-	board := ginEngine.Group("/board") // uncomment this for dedicated frontend mode
+	board := api.Group("/board")
 	board.Use(middlewares.AuthenticatedOnly())
 	{
 		board.POST("/all", controllers.AllBoard())
@@ -83,8 +85,7 @@ func getServer(mode string) *gin.Engine {
 		board.PATCH("/update", controllers.UpdateBoard())
 		board.DELETE("/delete", controllers.DeleteBoard())
 	}
-	// post := api.Group("/post") // uncomment this for built-in frontend mode
-	post := ginEngine.Group("/post") // uncomment this for dedicated frontend mode
+	post := api.Group("/post")
 	post.Use(middlewares.AuthenticatedOnly())
 	{
 		post.POST("/all", controllers.AllPost())
@@ -95,16 +96,14 @@ func getServer(mode string) *gin.Engine {
 		post.PATCH("/comment/update", controllers.UpdateComment())
 		post.DELETE("/comment/delete", controllers.DeleteComment())
 	}
-	// uncomment these for built-in frontend mode
-	// ginEngine.Delims("$gin{", "}")
-	// ginEngine.LoadHTMLGlob("views/*")
-	// ginEngine.GET("/", func(c *gin.Context) {
-	// 	c.HTML(http.StatusOK, "index.html", gin.H{})
-	// })
-	// ginEngine.GET("/project/:ID", func(c *gin.Context) {
-	// 	c.HTML(http.StatusOK, "project.html", gin.H{"id": c.Param("ID")})
-	// })
-	// uncomment these for built-in frontend mode
+	ginEngine.Delims("$gin{", "}")
+	ginEngine.LoadHTMLGlob("views/*")
+	ginEngine.GET("/", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "index.html", gin.H{})
+	})
+	ginEngine.GET("/project/:ID", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "project.html", gin.H{"id": c.Param("ID")})
+	})
 	return ginEngine
 }
 

@@ -41,6 +41,12 @@ func NewProject() gin.HandlerFunc {
 			ginContext.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 			return
 		}
+		// Check plan limit
+		if helpers.ExceedProjectLimit(ginContext) {
+			ginContext.JSON(http.StatusBadRequest, gin.H{"message": "Project exceed plan limit."})
+			return
+		}
+
 		status, message, project := project.CreateProject()
 		ginContext.JSON(status,
 			gin.H{

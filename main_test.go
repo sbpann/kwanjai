@@ -87,7 +87,7 @@ func TestRigesterLogoutLoginLogout(t *testing.T) {
 	registerInfo.Password = "test1password"
 	b, _ := json.Marshal(registerInfo)
 	writer := httptest.NewRecorder()
-	request, _ := http.NewRequest("POST", "/authentication/register", bytes.NewBuffer([]byte(b)))
+	request, _ := http.NewRequest("POST", "/api/authentication/register", bytes.NewBuffer([]byte(b)))
 	getServer("test").ServeHTTP(writer, request)
 	assert.Equal(t, http.StatusOK, writer.Code)
 
@@ -99,7 +99,7 @@ func TestRigesterLogoutLoginLogout(t *testing.T) {
 	token.AccessToken = response["token"].(map[string]interface{})["access_token"].(string)
 	token.RefreshToken = response["token"].(map[string]interface{})["refresh_token"].(string)
 	b, _ = json.Marshal(token)
-	request, _ = http.NewRequest("POST", "/authentication/logout", bytes.NewBuffer([]byte(b)))
+	request, _ = http.NewRequest("POST", "/api/authentication/logout", bytes.NewBuffer([]byte(b)))
 	request.Header.Set("Authorization", "Bearer "+token.AccessToken)
 	getServer("test").ServeHTTP(writer, request)
 	assert.Equal(t, http.StatusOK, writer.Code)
@@ -112,7 +112,7 @@ func TestRigesterLogoutLoginLogout(t *testing.T) {
 	login.ID = "test1"
 	login.Password = "test1password"
 	b, _ = json.Marshal(login)
-	request, _ = http.NewRequest("POST", "/authentication/login", bytes.NewBuffer([]byte(b)))
+	request, _ = http.NewRequest("POST", "/api/authentication/login", bytes.NewBuffer([]byte(b)))
 	getServer("test").ServeHTTP(writer, request)
 	assert.Equal(t, http.StatusOK, writer.Code)
 
@@ -123,7 +123,7 @@ func TestRigesterLogoutLoginLogout(t *testing.T) {
 	token.RefreshToken = response["token"].(map[string]interface{})["refresh_token"].(string)
 	writer = httptest.NewRecorder()
 	b, _ = json.Marshal(token)
-	request, _ = http.NewRequest("POST", "/authentication/logout", bytes.NewBuffer([]byte(b)))
+	request, _ = http.NewRequest("POST", "/api/authentication/logout", bytes.NewBuffer([]byte(b)))
 	request.Header.Set("Authorization", "Bearer "+token.AccessToken)
 	getServer("test").ServeHTTP(writer, request)
 	assert.Equal(t, http.StatusOK, writer.Code)
@@ -139,7 +139,7 @@ func TestRegisterWithBadEmailFormat(t *testing.T) {
 	registerInfo.Password = "johnpassword"
 	b, _ := json.Marshal(registerInfo)
 	writer := httptest.NewRecorder()
-	request, _ := http.NewRequest("POST", "/authentication/register", bytes.NewBuffer([]byte(b)))
+	request, _ := http.NewRequest("POST", "/api/authentication/register", bytes.NewBuffer([]byte(b)))
 	getServer("test").ServeHTTP(writer, request)
 	assert.Equal(t, http.StatusBadRequest, writer.Code)
 }
@@ -152,7 +152,7 @@ func TestRegisterWithReserverdUsername(t *testing.T) {
 	registerInfo.Password = "anonymouspassword"
 	b, _ := json.Marshal(registerInfo)
 	writer := httptest.NewRecorder()
-	request, _ := http.NewRequest("POST", "/authentication/register", bytes.NewBuffer([]byte(b)))
+	request, _ := http.NewRequest("POST", "/api/authentication/register", bytes.NewBuffer([]byte(b)))
 	getServer("test").ServeHTTP(writer, request)
 	assert.Equal(t, http.StatusBadRequest, writer.Code)
 }
@@ -164,7 +164,7 @@ func TestLoginWithInvalidCredential(t *testing.T) {
 	login.Password = "anonymouspassword"
 	b, _ := json.Marshal(login)
 	writer := httptest.NewRecorder()
-	request, _ := http.NewRequest("POST", "/authentication/login", bytes.NewBuffer([]byte(b)))
+	request, _ := http.NewRequest("POST", "/api/authentication/login", bytes.NewBuffer([]byte(b)))
 	getServer("test").ServeHTTP(writer, request)
 	assert.Equal(t, http.StatusBadRequest, writer.Code)
 	assert.Equal(t, `{"message":"Cannot login with provided credential."}`, writer.Body.String())
@@ -173,7 +173,7 @@ func TestLoginWithInvalidCredential(t *testing.T) {
 func TestVerifyEmailWithBadLink(t *testing.T) {
 
 	writer := httptest.NewRecorder()
-	request, _ := http.NewRequest("POST", "/authentication/verify_email/badlink", nil)
+	request, _ := http.NewRequest("POST", "/api/authentication/verify_email/badlink", nil)
 	getServer("test").ServeHTTP(writer, request)
 	assert.Equal(t, http.StatusBadRequest, writer.Code)
 	assert.Equal(t, `{"message":"Bad verification link."}`, writer.Body.String())
@@ -182,10 +182,10 @@ func TestVerifyEmailWithBadLink(t *testing.T) {
 func TestUnauthorizedAction(t *testing.T) {
 
 	endpoints := map[string]string{
-		"/project/new":    "POST",
-		"/project/find":   "POST",
-		"/project/update": "PATCH",
-		"/project/delete": "DELETE",
+		"/api/project/new":    "POST",
+		"/api/project/find":   "POST",
+		"/api/project/update": "PATCH",
+		"/api/project/delete": "DELETE",
 	}
 	for key, element := range endpoints {
 		writer := httptest.NewRecorder()
@@ -206,7 +206,7 @@ func TestCreateBoardGetAllProjects(t *testing.T) {
 	registerInfo.Password = "test1password"
 	b, _ := json.Marshal(registerInfo)
 	writer := httptest.NewRecorder()
-	request, _ := http.NewRequest("POST", "/authentication/register", bytes.NewBuffer([]byte(b)))
+	request, _ := http.NewRequest("POST", "/api/authentication/register", bytes.NewBuffer([]byte(b)))
 	getServer("test").ServeHTTP(writer, request)
 	assert.Equal(t, http.StatusOK, writer.Code)
 	json.Unmarshal([]byte(writer.Body.String()), &response)
@@ -220,7 +220,7 @@ func TestCreateBoardGetAllProjects(t *testing.T) {
 	registerInfo.Password = "test2password"
 	b, _ = json.Marshal(registerInfo)
 	writer = httptest.NewRecorder()
-	request, _ = http.NewRequest("POST", "/authentication/register", bytes.NewBuffer([]byte(b)))
+	request, _ = http.NewRequest("POST", "/api/authentication/register", bytes.NewBuffer([]byte(b)))
 	getServer("test").ServeHTTP(writer, request)
 	assert.Equal(t, http.StatusOK, writer.Code)
 	json.Unmarshal([]byte(writer.Body.String()), &response)
@@ -232,7 +232,7 @@ func TestCreateBoardGetAllProjects(t *testing.T) {
 	project.Name = "My New Project"
 	b, _ = json.Marshal(project)
 	writer = httptest.NewRecorder()
-	request, _ = http.NewRequest("POST", "/project/new", bytes.NewBuffer([]byte(b)))
+	request, _ = http.NewRequest("POST", "/api/project/new", bytes.NewBuffer([]byte(b)))
 	request.Header.Set("Authorization", "Bearer "+token1.AccessToken)
 	getServer("test").ServeHTTP(writer, request)
 	assert.Equal(t, http.StatusCreated, writer.Code)
@@ -241,7 +241,7 @@ func TestCreateBoardGetAllProjects(t *testing.T) {
 
 	// user test2 get all projects
 	writer = httptest.NewRecorder()
-	request, _ = http.NewRequest("GET", "/project/all", nil)
+	request, _ = http.NewRequest("GET", "/api/project/all", nil)
 	request.Header.Set("Authorization", "Bearer "+token2.AccessToken)
 	getServer("test").ServeHTTP(writer, request)
 	assert.Equal(t, http.StatusOK, writer.Code)
@@ -257,7 +257,7 @@ func TestCreateBoardGetAllProjects(t *testing.T) {
 
 	// user test1 get all projects
 	writer = httptest.NewRecorder()
-	request, _ = http.NewRequest("GET", "/project/all", nil)
+	request, _ = http.NewRequest("GET", "/api/project/all", nil)
 	request.Header.Set("Authorization", "Bearer "+token1.AccessToken)
 	getServer("test").ServeHTTP(writer, request)
 	assert.Equal(t, http.StatusOK, writer.Code)
@@ -287,7 +287,7 @@ func TestCreateBoard(t *testing.T) {
 	registerInfo.Password = "test1password"
 	b, _ := json.Marshal(registerInfo)
 	writer := httptest.NewRecorder()
-	request, _ := http.NewRequest("POST", "/authentication/register", bytes.NewBuffer([]byte(b)))
+	request, _ := http.NewRequest("POST", "/api/authentication/register", bytes.NewBuffer([]byte(b)))
 	getServer("test").ServeHTTP(writer, request)
 	assert.Equal(t, http.StatusOK, writer.Code)
 	json.Unmarshal([]byte(writer.Body.String()), &response)
@@ -301,7 +301,7 @@ func TestCreateBoard(t *testing.T) {
 	registerInfo.Password = "test2password"
 	b, _ = json.Marshal(registerInfo)
 	writer = httptest.NewRecorder()
-	request, _ = http.NewRequest("POST", "/authentication/register", bytes.NewBuffer([]byte(b)))
+	request, _ = http.NewRequest("POST", "/api/authentication/register", bytes.NewBuffer([]byte(b)))
 	getServer("test").ServeHTTP(writer, request)
 	assert.Equal(t, http.StatusOK, writer.Code)
 	json.Unmarshal([]byte(writer.Body.String()), &response)
@@ -313,7 +313,7 @@ func TestCreateBoard(t *testing.T) {
 	project.Name = "My New Project"
 	b, _ = json.Marshal(project)
 	writer = httptest.NewRecorder()
-	request, _ = http.NewRequest("POST", "/project/new", bytes.NewBuffer([]byte(b)))
+	request, _ = http.NewRequest("POST", "/api/project/new", bytes.NewBuffer([]byte(b)))
 	request.Header.Set("Authorization", "Bearer "+token1.AccessToken)
 	getServer("test").ServeHTTP(writer, request)
 	assert.Equal(t, http.StatusCreated, writer.Code)
@@ -326,14 +326,14 @@ func TestCreateBoard(t *testing.T) {
 	board.Project = createdProjectID
 	b, _ = json.Marshal(board)
 	writer = httptest.NewRecorder()
-	request, _ = http.NewRequest("POST", "/board/new", bytes.NewBuffer([]byte(b)))
+	request, _ = http.NewRequest("POST", "/api/board/new", bytes.NewBuffer([]byte(b)))
 	request.Header.Set("Authorization", "Bearer "+token2.AccessToken)
 	getServer("test").ServeHTTP(writer, request)
 	assert.Equal(t, http.StatusForbidden, writer.Code) // should fail.
 
 	// user test1 try to create board under project of user test1.
 	writer = httptest.NewRecorder()
-	request, _ = http.NewRequest("POST", "/board/new", bytes.NewBuffer([]byte(b)))
+	request, _ = http.NewRequest("POST", "/api/board/new", bytes.NewBuffer([]byte(b)))
 	request.Header.Set("Authorization", "Bearer "+token1.AccessToken)
 	getServer("test").ServeHTTP(writer, request)
 	assert.Equal(t, http.StatusCreated, writer.Code) // should pass.
@@ -358,7 +358,7 @@ func TestCreateAndDeletePost(t *testing.T) {
 	registerInfo.Password = "test1password"
 	b, _ := json.Marshal(registerInfo)
 	writer := httptest.NewRecorder()
-	request, _ := http.NewRequest("POST", "/authentication/register", bytes.NewBuffer([]byte(b)))
+	request, _ := http.NewRequest("POST", "/api/authentication/register", bytes.NewBuffer([]byte(b)))
 	getServer("test").ServeHTTP(writer, request)
 	assert.Equal(t, http.StatusOK, writer.Code)
 	json.Unmarshal([]byte(writer.Body.String()), &response)
@@ -370,7 +370,7 @@ func TestCreateAndDeletePost(t *testing.T) {
 	project.Name = "My New Project"
 	b, _ = json.Marshal(project)
 	writer = httptest.NewRecorder()
-	request, _ = http.NewRequest("POST", "/project/new", bytes.NewBuffer([]byte(b)))
+	request, _ = http.NewRequest("POST", "/api/project/new", bytes.NewBuffer([]byte(b)))
 	request.Header.Set("Authorization", "Bearer "+token1.AccessToken)
 	getServer("test").ServeHTTP(writer, request)
 	assert.Equal(t, http.StatusCreated, writer.Code)
@@ -383,7 +383,7 @@ func TestCreateAndDeletePost(t *testing.T) {
 	board.Project = createdProjectID
 	b, _ = json.Marshal(board)
 	writer = httptest.NewRecorder()
-	request, _ = http.NewRequest("POST", "/board/new", bytes.NewBuffer([]byte(b)))
+	request, _ = http.NewRequest("POST", "/api/board/new", bytes.NewBuffer([]byte(b)))
 	request.Header.Set("Authorization", "Bearer "+token1.AccessToken)
 	getServer("test").ServeHTTP(writer, request)
 	assert.Equal(t, http.StatusCreated, writer.Code) // should pass.
@@ -397,7 +397,7 @@ func TestCreateAndDeletePost(t *testing.T) {
 	post.Body = "My this post is created for testing."
 	b, _ = json.Marshal(post)
 	writer = httptest.NewRecorder()
-	request, _ = http.NewRequest("POST", "/post/new", bytes.NewBuffer([]byte(b)))
+	request, _ = http.NewRequest("POST", "/api/post/new", bytes.NewBuffer([]byte(b)))
 	request.Header.Set("Authorization", "Bearer "+token1.AccessToken)
 	getServer("test").ServeHTTP(writer, request)
 	assert.Equal(t, http.StatusCreated, writer.Code) // should pass.
@@ -411,7 +411,7 @@ func TestCreateAndDeletePost(t *testing.T) {
 	registerInfo.Password = "test2password"
 	b, _ = json.Marshal(registerInfo)
 	writer = httptest.NewRecorder()
-	request, _ = http.NewRequest("POST", "/authentication/register", bytes.NewBuffer([]byte(b)))
+	request, _ = http.NewRequest("POST", "/api/authentication/register", bytes.NewBuffer([]byte(b)))
 	getServer("test").ServeHTTP(writer, request)
 	assert.Equal(t, http.StatusOK, writer.Code)
 	json.Unmarshal([]byte(writer.Body.String()), &response)
@@ -422,14 +422,14 @@ func TestCreateAndDeletePost(t *testing.T) {
 	post.ID = createdPostID
 	b, _ = json.Marshal(post)
 	writer = httptest.NewRecorder()
-	request, _ = http.NewRequest("DELETE", "/post/delete", bytes.NewBuffer([]byte(b)))
+	request, _ = http.NewRequest("DELETE", "/api/post/delete", bytes.NewBuffer([]byte(b)))
 	request.Header.Set("Authorization", "Bearer "+token2.AccessToken)
 	getServer("test").ServeHTTP(writer, request)
 	assert.Equal(t, http.StatusForbidden, writer.Code) // should fail.
 
 	// user test1 try to delete post created by user 1.
 	writer = httptest.NewRecorder()
-	request, _ = http.NewRequest("DELETE", "/post/delete", bytes.NewBuffer([]byte(b)))
+	request, _ = http.NewRequest("DELETE", "/api/post/delete", bytes.NewBuffer([]byte(b)))
 	request.Header.Set("Authorization", "Bearer "+token1.AccessToken)
 	getServer("test").ServeHTTP(writer, request)
 	assert.Equal(t, http.StatusOK, writer.Code) // should pass.
@@ -452,7 +452,7 @@ func TestCreateAndDeleteComment(t *testing.T) {
 	registerInfo.Password = "test1password"
 	b, _ := json.Marshal(registerInfo)
 	writer := httptest.NewRecorder()
-	request, _ := http.NewRequest("POST", "/authentication/register", bytes.NewBuffer([]byte(b)))
+	request, _ := http.NewRequest("POST", "/api/authentication/register", bytes.NewBuffer([]byte(b)))
 	getServer("test").ServeHTTP(writer, request)
 	assert.Equal(t, http.StatusOK, writer.Code)
 	json.Unmarshal([]byte(writer.Body.String()), &response)
@@ -464,7 +464,7 @@ func TestCreateAndDeleteComment(t *testing.T) {
 	project.Name = "My New Project"
 	b, _ = json.Marshal(project)
 	writer = httptest.NewRecorder()
-	request, _ = http.NewRequest("POST", "/project/new", bytes.NewBuffer([]byte(b)))
+	request, _ = http.NewRequest("POST", "/api/project/new", bytes.NewBuffer([]byte(b)))
 	request.Header.Set("Authorization", "Bearer "+token1.AccessToken)
 	getServer("test").ServeHTTP(writer, request)
 	assert.Equal(t, http.StatusCreated, writer.Code)
@@ -477,7 +477,7 @@ func TestCreateAndDeleteComment(t *testing.T) {
 	board.Project = createdProjectID
 	b, _ = json.Marshal(board)
 	writer = httptest.NewRecorder()
-	request, _ = http.NewRequest("POST", "/board/new", bytes.NewBuffer([]byte(b)))
+	request, _ = http.NewRequest("POST", "/api/board/new", bytes.NewBuffer([]byte(b)))
 	request.Header.Set("Authorization", "Bearer "+token1.AccessToken)
 	getServer("test").ServeHTTP(writer, request)
 	assert.Equal(t, http.StatusCreated, writer.Code) // should pass.
@@ -491,7 +491,7 @@ func TestCreateAndDeleteComment(t *testing.T) {
 	post.Body = "My this post is created for testing."
 	b, _ = json.Marshal(post)
 	writer = httptest.NewRecorder()
-	request, _ = http.NewRequest("POST", "/post/new", bytes.NewBuffer([]byte(b)))
+	request, _ = http.NewRequest("POST", "/api/post/new", bytes.NewBuffer([]byte(b)))
 	request.Header.Set("Authorization", "Bearer "+token1.AccessToken)
 	getServer("test").ServeHTTP(writer, request)
 	assert.Equal(t, http.StatusCreated, writer.Code) // should pass.
@@ -503,7 +503,7 @@ func TestCreateAndDeleteComment(t *testing.T) {
 	post.Comments = append(post.Comments, &models.Comment{Body: "my comment"})
 	b, _ = json.Marshal(post)
 	writer = httptest.NewRecorder()
-	request, _ = http.NewRequest("POST", "/post/comment/new", bytes.NewBuffer([]byte(b)))
+	request, _ = http.NewRequest("POST", "/api/post/comment/new", bytes.NewBuffer([]byte(b)))
 	request.Header.Set("Authorization", "Bearer "+token1.AccessToken)
 	getServer("test").ServeHTTP(writer, request)
 	assert.Equal(t, http.StatusCreated, writer.Code) // should pass.
@@ -518,7 +518,7 @@ func TestCreateAndDeleteComment(t *testing.T) {
 	registerInfo.Password = "test2password"
 	b, _ = json.Marshal(registerInfo)
 	writer = httptest.NewRecorder()
-	request, _ = http.NewRequest("POST", "/authentication/register", bytes.NewBuffer([]byte(b)))
+	request, _ = http.NewRequest("POST", "/api/authentication/register", bytes.NewBuffer([]byte(b)))
 	getServer("test").ServeHTTP(writer, request)
 	assert.Equal(t, http.StatusOK, writer.Code)
 	json.Unmarshal([]byte(writer.Body.String()), &response)
@@ -528,14 +528,14 @@ func TestCreateAndDeleteComment(t *testing.T) {
 	// user2 try to delete commented by user1
 	b, _ = json.Marshal(post)
 	writer = httptest.NewRecorder()
-	request, _ = http.NewRequest("DELETE", "/post/comment/delete", bytes.NewBuffer([]byte(b)))
+	request, _ = http.NewRequest("DELETE", "/api/post/comment/delete", bytes.NewBuffer([]byte(b)))
 	request.Header.Set("Authorization", "Bearer "+token2.AccessToken)
 	getServer("test").ServeHTTP(writer, request)
 	assert.Equal(t, http.StatusForbidden, writer.Code) // should fail.
 
 	// user1 try to delete commented by user1
 	writer = httptest.NewRecorder()
-	request, _ = http.NewRequest("DELETE", "/post/comment/delete", bytes.NewBuffer([]byte(b)))
+	request, _ = http.NewRequest("DELETE", "/api/post/comment/delete", bytes.NewBuffer([]byte(b)))
 	request.Header.Set("Authorization", "Bearer "+token1.AccessToken)
 	getServer("test").ServeHTTP(writer, request)
 	assert.Equal(t, http.StatusOK, writer.Code) // should pass.

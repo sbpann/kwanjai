@@ -3,7 +3,13 @@ $gin{define "script"}
 <script src="https://cdn.jsdelivr.net/npm/vuetify@2.x"></script>
 <script src="https://unpkg.com/vuex@2.x"></script>
 <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<script src="https://cdn.omise.co/omise.js"></script>
 <script>
+    // Omise
+    OmiseCard.configure({
+        publicKey: "pkey_test_5lr43m5s2v9k5iohgnp"
+    })
+
     // helpers
     function errorResponseAlert(error) {
         if (error.response) {
@@ -226,6 +232,13 @@ $gin{define "script"}
                 location.reload()
             }
         },
+        updateProject({ commit, dispatch, rootGetters }, { id, name, members }) {
+            const user = rootGetters['authentication/getUser']
+            const username = user.profile.username
+            const project = { id, name, members, user: username }
+            commit('updatedProject', project)
+            dispatch('fetchProjects')
+        },
         updateUserProject({ getters, commit }, { user, action }) {
             if (action === "add") {
                 user.profile.projects = user.profile.projects + 1
@@ -246,6 +259,11 @@ $gin{define "script"}
         },
         removeProject(state, id) {
             state.allProjects = state.allProjects.filter((element) => { return element.id != id })
+        },
+        updatedProject(state, project) {
+            const index = state.allProjects.findIndex((element) => { return element.id == project.id })
+            console.log(index, project)
+            state.allProjects[index] = { ...project }
         }
     }
     const project = {
@@ -288,19 +306,26 @@ $gin{define "script"}
             clickedLogin: false,
             clickedLogout: false,
             clickedRegister: false,
+            clickedUpdateProject: false,
+            clickedsubscribe: false,
+            clickedUnsubscribe: false,
             projectCreateFormIsActivated: false,
             projectCreateForm: {},
             registrationFormIsActivated: false,
             registrationForm: {},
             projectUpdateFormIsActivated: false,
             currentProjectData: {},
-            newProjectData: {}
+            newProjectData: {},
+            plans: [{ name: "Plus", price: 1 }, { name: "Pro", price: 4 }],
+            selectedPlan: "",
+            unsubrsciptionFormIsActivated: false,
+            nextPayment: new Date(),
+            dataFetched: false
         }),
         computed: {
             ...Vuex.mapGetters('project', ['allProjects', 'projectsAreFetched', 'addingProject']),
             ...Vuex.mapGetters('authentication', ['getAuthenticationStatus', 'getUser']),
             ...Vuex.mapGetters('shared', ['allUsernames']),
-            // navbar
             // homepage
             projectCols() {
                 switch (this.$vuetify.breakpoint.name) {
@@ -316,10 +341,10 @@ $gin{define "script"}
                 switch (this.$vuetify.breakpoint.name) {
                     case 'xs': return 16
                     case 'sm': return 16
-                    case 'md': return 20
-                    case 'lg': return 20
-                    case 'xl': return 20
-                    default: return 20
+                    case 'md': return 16
+                    case 'lg': return 16
+                    case 'xl': return 16
+                    default: return 16
                 }
             },
             projectPerPage() {
@@ -341,19 +366,27 @@ $gin{define "script"}
                     case 'xl': return 41
                     default: return 41
                 }
+            },
+            exceedProjectLimit() {
+                switch (this.getUser.profile.plan) {
+                    case 'Starter': return !(this.getUser.profile.projects < 1)
+                    case 'Plus': return !(this.getUser.profile.projects < 3)
+                    case 'Pro': return false
+                    default: return true
+                }
             }
         },
         methods: {
             ...Vuex.mapActions('authentication', ['login', 'logout', 'register', 'fecthUserData']),
             ...Vuex.mapActions('project', ['fetchProjects', 'addProject', 'removeProject']),
             ...Vuex.mapActions('shared', ['fetchUsernames']),
-            async loginAndFecth(id, password) {
+            async loginAndReload(id, password) {
                 await this.login({ id, password });
-                await this.fetchProjects();
+                location.reload()
             },
-            async registerAndFecth(username, email, password) {
+            async registerAndReload(username, email, password) {
                 await this.register({ username, email, password });
-                this.$store.commit('project/setProjects', [])
+                location.reload()
             },
             defaultProfilePicture(event) {
                 event.target.src = "https://storage.googleapis.com/kwanjai-a3803.appspot.com/anonymous.png"
@@ -373,28 +406,62 @@ $gin{define "script"}
                 if (projectIsEdited) {
                     try {
                         await axios.patch('/api/project/update',
-                            {
-                                id: this.newProjectData.id,
-                                name: this.newProjectData.name,
-                                members: this.newProjectData.members
-                            },
+                            this.newProjectData,
                             {
                                 headers: await requestHeader()
                             }
                         )
-                        location.reload()
+                        this.$store.dispatch('project/updateProject', { ...this.newProjectData })
+                        this.projectUpdateFormIsActivated = false
+                        this.clickedUpdateProject = false
                     } catch (error) {
                         errorResponseAlert(error)
                     }
+                }
+                this.projectUpdateFormIsActivated = false
+                this.clickedUpdateProject = false
+            },
+            subscribe() {
+                const price = this.plans.find(element => { return element.name == this.selectedPlan }).price * 100
+                const self = this
+                OmiseCard.open({
+                    amount: price,
+                    currency: "USD",
+                    defaultPaymentMethod: "credit_card",
+                    async onCreateTokenSuccess(nonce) {
+                        self.clickedsubscribe = true
+                        try {
+                            await axios.post('/api/user/pay', { token: nonce, price }, { headers: await requestHeader() })
+                            location.reload()
+                        } catch (error) {
+                            errorResponseAlert(error)
+                            location.reload()
+                        }
+                    }
+                })
+            },
+            async unsubscribe() {
+                this.clickedUnsubscribe = true
+                try {
+                    await axios.post('/api/user/unsubscribe', null, { headers: await requestHeader() })
+                    location.reload()
+                } catch (error) {
+                    errorResponseAlert(error)
+                    location.reload()
                 }
             }
         },
         async created() {
             if (this.getAuthenticationStatus) {
                 await this.fecthUserData()
+                this.nextPayment.setDate(this.getUser.profile.date_of_subscription)
+                this.nextPayment.setMonth(this.nextPayment.getMonth() + 1)
                 await this.fetchProjects()
                 await this.fetchUsernames()
             }
+            this.dataFetched = true
+        },
+        mounted() {
         },
     })
 </script>
