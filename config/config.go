@@ -9,6 +9,7 @@ import (
 
 var (
 	BaseDirectory                string
+	Port                         string
 	FirebaseProjectID            string
 	FrontendURL                  string
 	BackendURL                   string

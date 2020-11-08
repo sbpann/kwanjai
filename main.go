@@ -22,6 +22,11 @@ func setupServer() {
 		os.Setenv("GIN_MODE", "debug")
 	}
 	config.BaseDirectory, err = os.Getwd()
+	if os.Getenv("PORT") != "" {
+		config.Port = ":" + os.Getenv("PORT")
+	} else {
+		config.Port = ":8080"
+	}
 	libraries.InitializeGCP() // BaseDirectory need to be set before initialization.
 	config.Context = context.Background()
 	config.FrontendURL = "http://localhost:8080"
@@ -110,5 +115,5 @@ func getServer(mode string) *gin.Engine {
 func main() {
 	setupServer()
 	ginEngine := getServer(os.Getenv("GIN_MODE"))
-	ginEngine.Run()
+	ginEngine.Run(config.Port)
 }
