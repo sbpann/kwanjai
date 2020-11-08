@@ -66,7 +66,7 @@ func getServer(mode string) *gin.Engine {
 	authentication.POST("/verify_email/:UUID", controllers.VerifyEmail())
 	authentication.POST("/resend_verification_email", controllers.ResendVerifyEmail())
 	authentication.POST("/token/refresh", controllers.RefreshToken())
-	authentication.GET("/token/verify", controllers.TokenVerification())
+	authentication.GET("/token/verify", middlewares.AuthenticatedOnly(), controllers.TokenVerification())
 	user := api.Group("/user")
 	user.GET("/my_profile", middlewares.AuthenticatedOnly(), controllers.MyProfile())
 	user.GET("/all", middlewares.AuthenticatedOnly(), controllers.AllUsernames())
@@ -103,11 +103,12 @@ func getServer(mode string) *gin.Engine {
 	}
 	ginEngine.Delims("$gin{", "}")
 	ginEngine.LoadHTMLGlob("views/*")
-	ginEngine.GET("/", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "index.html", gin.H{})
+	ginEngine.GET("/", func(ginContext *gin.Context) {
+		ginContext.HTML(http.StatusOK, "index.html", gin.H{})
 	})
-	ginEngine.GET("/project/:ID", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "project.html", gin.H{"id": c.Param("ID")})
+	ginEngine.GET("/project/:ID", func(ginContext *gin.Context) {
+		projectID := ginContext.Param("ID")
+		ginContext.HTML(http.StatusOK, "project.html", gin.H{"projectId": projectID})
 	})
 	return ginEngine
 }

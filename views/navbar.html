@@ -7,7 +7,7 @@ $gin{define "navbar"}
                     ">
                 <v-icon>{{ !$vuetify.theme.dark ? "mdi-white-balance-sunny" : "mdi-moon-waning-crescent" }}</v-icon>
             </v-btn>
-            <v-btn :class="$vuetify.breakpoint.smAndUp ? 'mr-2' : ''">
+            <v-btn href="/" :class="$vuetify.breakpoint.smAndUp ? 'mr-2' : ''">
                 <v-icon>mdi-home</v-icon>
             </v-btn>
             <v-menu offset-y v-if="getAuthenticationStatus">
@@ -20,7 +20,7 @@ $gin{define "navbar"}
                 </template>
                 <v-list>
                     <v-list-item v-for="project in allProjects" :key="project.id">
-                        <v-list-item-title>
+                        <v-list-item-title :href="`/project/${project.id}`">
                             {{ project.name.substring(0, 16) + (project.name.length > 16 ? '...' : '' ) }}
                         </v-list-item-title>
                     </v-list-item>

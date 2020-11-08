@@ -1,4 +1,7 @@
 $gin{define "home"}
+<template v-if="!projectsAreFetched">
+    <v-progress-linear indeterminate></v-progress-linear>
+</template>
 <v-container id="home">
     <template v-if="getAuthenticationStatus">
         <template v-if="projectsAreFetched">
@@ -9,7 +12,9 @@ $gin{define "home"}
             </v-row>
             <v-row no-gutters justify="end">
                 <v-col cols="12" align="end">
-                    <v-btn @click="projectCreateFormIsActivated = true, projectCreateForm = {}" :disabled="exceedProjectLimit">{{ exceedProjectLimit ? 'Please upgrade plan for add more project' : 'New project' }}</v-btn>
+                    <v-btn @click="projectCreateFormIsActivated = true, projectCreateForm = {}"
+                        :disabled="exceedProjectLimit">
+                        {{ exceedProjectLimit ? 'Please upgrade plan for add more project' : 'New project' }}</v-btn>
                 </v-col>
             </v-row>
             <v-dialog v-model="projectCreateFormIsActivated" hide-overlay max-width="500px"
@@ -40,8 +45,11 @@ $gin{define "home"}
                                 <v-col cols="9">
                                     <v-tooltip top>
                                         <template v-slot:activator="{ on, attrs }">
-                                            <span v-bind="attrs" v-on="on" :class="$vuetify.breakpoint.smAndDown ? 'text-subtitle-1' : ''">
-                                                {{ (project.name.substring(0, projectNameLimit) + (project.name.length > projectNameLimit ? '...' : '')) }}
+                                            <span v-bind="attrs" v-on="on"
+                                                :class="$vuetify.breakpoint.smAndDown ? 'text-subtitle-1' : ''">
+                                                <a :href="`/project/${project.id}`"
+                                                    :class="$vuetify.theme.dark ? 'white--text' : 'black--text'"
+                                                    style="text-decoration: none;">{{ (project.name.substring(0, projectNameLimit) + (project.name.length > projectNameLimit ? '...' : '')) }}</a>
                                             </span>
                                         </template>
                                         <span>{{project.name}}</span>
@@ -49,7 +57,8 @@ $gin{define "home"}
                                 </v-col>
                                 <v-dialog v-model="projectUpdateFormIsActivated" hide-overlay max-width="500px">
                                     <v-card>
-                                        <v-form id="projectUpdateForm" @submit.prevent="clickedUpdateProject = true; updateProject()">
+                                        <v-form id="projectUpdateForm"
+                                            @submit.prevent="clickedUpdateProject = true; updateProject()">
                                             <v-card-title class="text-h6 pb-0">
                                                 Project Name
                                             </v-card-title>
@@ -62,13 +71,13 @@ $gin{define "home"}
                                             </v-card-title>
                                             <v-card-text>
                                                 <v-select hide-details="auto" v-model="newProjectData.members"
-                                                    label="members" hint="owner is already included"
-                                                    persistent-hint
+                                                    label="members" hint="owner is already included" persistent-hint
                                                     :items="allUsernames.filter(username => {return username !== getUser.profile.username})"
                                                     chips multiple />
                                             </v-card-text>
                                             <v-card-actions class="justify-center">
-                                                <v-btn text type="submit" form="projectUpdateForm" color="info" :loading="clickedUpdateProject">update
+                                                <v-btn text type="submit" form="projectUpdateForm" color="info"
+                                                    :loading="clickedUpdateProject">update
                                                 </v-btn>
                                             </v-card-actions>
                                         </v-form>
@@ -115,9 +124,6 @@ $gin{define "home"}
             <v-row>
                 <v-pagination v-model="projectsPage" :length="Math.ceil(allProjects.length / projectPerPage)" />
             </v-row>
-        </template>
-        <template v-else>
-            <v-progress-linear indeterminate></v-progress-linear>
         </template>
     </template>
     <template v-else>

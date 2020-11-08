@@ -5,11 +5,11 @@ $gin{define "script"}
 <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 <script src="https://cdn.omise.co/omise.js"></script>
 <script>
+
     // Omise
     OmiseCard.configure({
         publicKey: "pkey_test_5lr43m5s2v9k5iohgnp"
     })
-
     // helpers
     function errorResponseAlert(error) {
         if (error.response) {
@@ -320,7 +320,10 @@ $gin{define "script"}
             selectedPlan: "",
             unsubrsciptionFormIsActivated: false,
             nextPayment: new Date(),
-            dataFetched: false
+            dataFetched: false,
+            thisProjecId: JSON.parse(`$gin{ .projectId }`),
+            thisProjectIsLoaded: false,
+            thisProject: {}
         }),
         computed: {
             ...Vuex.mapGetters('project', ['allProjects', 'projectsAreFetched', 'addingProject']),
@@ -452,14 +455,26 @@ $gin{define "script"}
             }
         },
         async created() {
+            const location = window.location.pathname
             if (this.getAuthenticationStatus) {
                 await this.fecthUserData()
                 this.nextPayment.setDate(this.getUser.profile.date_of_subscription)
                 this.nextPayment.setMonth(this.nextPayment.getMonth() + 1)
                 await this.fetchProjects()
                 await this.fetchUsernames()
+
             }
             this.dataFetched = true
+            if (location.startsWith('/project/')) {
+                try {
+                    const response = await axios.post('/api/project/find', { id: this.thisProjecId }, { headers: await requestHeader() })
+                    this.thisProject = { ...response.data.project }
+                    this.thisProjectIsLoaded = true
+                    document.title = `Project - ${response.data.project.name}`
+                } catch (error) {
+                    errorResponseAlert(error)
+                }
+            }
         },
         mounted() {
         },

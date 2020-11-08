@@ -164,12 +164,7 @@ func RefreshToken() gin.HandlerFunc {
 // TokenVerification endpiont
 func TokenVerification() gin.HandlerFunc {
 	return func(ginContext *gin.Context) {
-		username := helpers.GetUsername(ginContext)
-		if username != "anonymous" {
-			ginContext.Status(http.StatusOK)
-		} else {
-			ginContext.Status(http.StatusUnauthorized)
-		}
+		ginContext.Status(http.StatusOK)
 	}
 }
 
