@@ -1,5 +1,5 @@
 $gin{define "home"}
-<template v-if="!projectsAreFetched">
+<template v-if="!projectsAreFetched && getAuthenticationStatus">
     <v-progress-linear indeterminate></v-progress-linear>
 </template>
 <v-container id="home">
@@ -14,7 +14,7 @@ $gin{define "home"}
                 <v-col cols="12" align="end">
                     <v-btn @click="projectCreateFormIsActivated = true, projectCreateForm = {}"
                         :disabled="exceedProjectLimit">
-                        {{ exceedProjectLimit ? 'Please upgrade plan for add more project' : 'New project' }}</v-btn>
+                        {{ !exceedProjectLimit ? 'New project' : 'Please upgrade plan for add more project' }}</v-btn>
                 </v-col>
             </v-row>
             <v-dialog v-model="projectCreateFormIsActivated" hide-overlay max-width="500px"
@@ -38,7 +38,7 @@ $gin{define "home"}
             <v-row>
                 <v-col
                     v-for="project in allProjects.filter((element, index) => {return index+1 >= 1+((projectsPage-1)*projectPerPage) && index+1 <= projectsPage*projectPerPage})"
-                    :key="project.id" :cols="projectCols">
+                    :key="project.id" :cols="cardCols">
                     <v-card height="400px">
                         <v-card-title>
                             <v-row no-gutters>
@@ -86,7 +86,7 @@ $gin{define "home"}
                                 <v-col cols="3" align="end">
                                     <template v-if="project.user == getUser.profile.username">
                                         <v-btn icon x-small v-if="project.id"
-                                            @click="activeprojectUpdateor(project.id)">
+                                            @click="activeProjectUpdater(project.id)">
                                             <v-icon x-small>mdi-pencil</v-icon>
                                         </v-btn>
                                         <v-btn v-if="!project.id" loading x-small icon></v-btn>

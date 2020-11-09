@@ -262,7 +262,6 @@ $gin{define "script"}
         },
         updatedProject(state, project) {
             const index = state.allProjects.findIndex((element) => { return element.id == project.id })
-            console.log(index, project)
             state.allProjects[index] = { ...project }
         }
     }
@@ -274,13 +273,138 @@ $gin{define "script"}
         actions: projectActions,
     }
 
+    // Board store
+    const boardState = () => ({
+        allBoards: [],
+        thisProject: {}
+    })
+
+    const boardGetters = {
+        allBoards(state) {
+            return state.allBoards.sort((a, b) => { return a.position - b.position })
+        },
+        thisProject(state) {
+            return state.thisProject
+        }
+    }
+
+    const boardActions = {
+        async fetchThisProject({ commit }) {
+            try {
+                const response = await axios.post('/api/project/find', { id: JSON.parse(`$gin{ .projectId }`) }, { headers: await requestHeader() })
+                const project = response.data.project
+                commit('setThisProject', project)
+            } catch (error) {
+                errorResponseAlert(error)
+                location.reload()
+            }
+        },
+        async fetchBoards({ commit }) {
+            try {
+                const response = await axios.post('/api/board/all', { project: JSON.parse(`$gin{ .projectId }`) }, { headers: await requestHeader() })
+                commit('setAllBoards', response.data.boards)
+            } catch (error) {
+                errorResponseAlert(error)
+                location.reload()
+            }
+        },
+        async addBoard({ commit, dispatch }, name) {
+            try {
+                commit('addNewBoard', name)
+                const response = await axios.post('/api/board/new', { project: JSON.parse(`$gin{ .projectId }`), name }, { headers: await requestHeader() })
+                dispatch('fetchBoards')
+            } catch (error) {
+                errorResponseAlert(error)
+                location.reload()
+            }
+        },
+        updateBoard({ commit, dispatch }, { id, name, position }) {
+            const board = { id, name, position }
+            commit('updatedBoard', board)
+            dispatch('fetchBoards')
+        },
+        async removeBoard({ commit, dispatch }, { id }) {
+            try {
+                commit('removeBoard', id)
+                await axios.delete('/api/board/delete', { headers: await requestHeader(), data: { id } })
+                dispatch('fetchBoards')
+            } catch (error) {
+                errorResponseAlert(error)
+                location.reload()
+            }
+        },
+        async moveBoard({ commit, getters, dispatch }, { id, action }) {
+            const oldData = getters['allBoards'].find(element => { return element.id == id })
+            const oldPosition = oldData.position
+            if (action == 'up') {
+                newPosition = oldPosition + 1
+            } else {
+                newPosition = oldPosition - 1
+            }
+            try {
+                commit('setBoardPosition', { id, newPosition })
+            } catch {
+                return
+            }
+            try {
+                await axios.patch('/api/board/update', { id, name: oldData.name, position: newPosition }, { headers: await requestHeader() })
+                dispatch('fetchBoards')
+            } catch (error) {
+                errorResponseAlert(error)
+                location.reload()
+            }
+        }
+    }
+
+    const boardMutations = {
+        setThisProject(state, project) {
+            state.thisProject = project;
+        },
+        setAllBoards(state, boards) {
+            state.allBoards = boards;
+        },
+        addNewBoard(state, name) {
+            const position = state.allBoards.length + 1
+            state.allBoards.push({ name, position })
+        },
+        removeBoard(state, id) {
+            const deletedPosition = state.allBoards.find(element => { return element.id == id }).position
+            state.allBoards = state.allBoards.filter(element => { return element.id !== id })
+            state.allBoards.forEach(element => {
+                if (element.position > deletedPosition) {
+                    element.position = element.position - 1
+                }
+            })
+        },
+        setBoardPosition(state, { id, newPosition }) {
+            try {
+                state.allBoards.find(element => { return element.position == newPosition }).position = state.allBoards.find(element => { return element.id == id }).position
+                state.allBoards.find(element => { return element.id == id }).position = newPosition
+            } catch (error) {
+                throw new Error(error)
+            }
+        },
+        updatedBoard(state, board) {
+            const index = state.allBoards.findIndex((element) => { return element.id == board.id })
+            state.allBoards[index] = { ...board }
+        }
+    }
+
+    const board = {
+        namespaced: true,
+        state: boardState,
+        getters: boardGetters,
+        mutations: boardMutations,
+        actions: boardActions,
+    }
     new Vue({
         el: '#app',
         store: new Vuex.Store({
             modules: {
-                project,
                 authentication,
-                shared
+                shared,
+                project,
+                board
             }
         }),
         vuetify: new Vuetify({
@@ -307,8 +431,9 @@ $gin{define "script"}
             clickedLogout: false,
             clickedRegister: false,
             clickedUpdateProject: false,
-            clickedsubscribe: false,
+            clickedSubscribe: false,
             clickedUnsubscribe: false,
+            clickedUpdateBoard: false,
             projectCreateFormIsActivated: false,
             projectCreateForm: {},
             registrationFormIsActivated: false,
@@ -321,16 +446,21 @@ $gin{define "script"}
             unsubrsciptionFormIsActivated: false,
             nextPayment: new Date(),
             dataFetched: false,
-            thisProjecId: JSON.parse(`$gin{ .projectId }`),
             thisProjectIsLoaded: false,
-            thisProject: {}
+            newBoardForm: {},
+            newBoardFormIsActivate: false,
+            currentBoardData: {},
+            newBoardData: {},
+            updateBoardFormIsActivate: false,
+            showAllProjectMembers: false
         }),
         computed: {
-            ...Vuex.mapGetters('project', ['allProjects', 'projectsAreFetched', 'addingProject']),
             ...Vuex.mapGetters('authentication', ['getAuthenticationStatus', 'getUser']),
             ...Vuex.mapGetters('shared', ['allUsernames']),
+            ...Vuex.mapGetters('project', ['allProjects', 'projectsAreFetched', 'addingProject']),
+            ...Vuex.mapGetters('board', ['thisProject', 'allBoards']),
             // homepage
-            projectCols() {
+            cardCols() {
                 switch (this.$vuetify.breakpoint.name) {
                     case 'xs': return 6
                     case 'sm': return 4
@@ -377,11 +507,20 @@ $gin{define "script"}
                     case 'Pro': return false
                     default: return true
                 }
+            },
+            exceedBoardLimit() {
+                switch (this.getUser.profile.plan) {
+                    case 'Starter': return !(this.allBoards.length < 2)
+                    case 'Plus': return !(this.allBoards.length < 3)
+                    case 'Pro': return false
+                    default: return true
+                }
             }
         },
         methods: {
             ...Vuex.mapActions('authentication', ['login', 'logout', 'register', 'fecthUserData']),
             ...Vuex.mapActions('project', ['fetchProjects', 'addProject', 'removeProject']),
+            ...Vuex.mapActions('board', ['fetchThisProject', 'fetchBoards', 'addBoard', 'removeBoard', 'moveBoard']),
             ...Vuex.mapActions('shared', ['fetchUsernames']),
             async loginAndReload(id, password) {
                 await this.login({ id, password });
@@ -394,9 +533,9 @@ $gin{define "script"}
             defaultProfilePicture(event) {
                 event.target.src = "https://storage.googleapis.com/kwanjai-a3803.appspot.com/anonymous.png"
             },
-            activeprojectUpdateor(projectId) {
+            activeProjectUpdater(projectId) {
                 this.projectUpdateFormIsActivated = true
-                thisProject = this.allProjects.find((project) => { return project.id == projectId })
+                const thisProject = this.allProjects.find((project) => { return project.id == projectId })
                 this.currentProjectData.id = thisProject.id
                 this.currentProjectData.name = thisProject.name
                 this.currentProjectData.members = thisProject.members
@@ -410,15 +549,12 @@ $gin{define "script"}
                     try {
                         await axios.patch('/api/project/update',
                             this.newProjectData,
-                            {
-                                headers: await requestHeader()
-                            }
+                            { headers: await requestHeader() }
                         )
                         this.$store.dispatch('project/updateProject', { ...this.newProjectData })
-                        this.projectUpdateFormIsActivated = false
-                        this.clickedUpdateProject = false
                     } catch (error) {
                         errorResponseAlert(error)
+                        location.reload()
                     }
                 }
                 this.projectUpdateFormIsActivated = false
@@ -432,7 +568,7 @@ $gin{define "script"}
                     currency: "USD",
                     defaultPaymentMethod: "credit_card",
                     async onCreateTokenSuccess(nonce) {
-                        self.clickedsubscribe = true
+                        self.clickedSubscribe = true
                         try {
                             await axios.post('/api/user/pay', { token: nonce, price }, { headers: await requestHeader() })
                             location.reload()
@@ -452,6 +588,32 @@ $gin{define "script"}
                     errorResponseAlert(error)
                     location.reload()
                 }
+            },
+            // project page
+            activeBoardUpdater(boardId) {
+                this.updateBoardFormIsActivate = true
+                const thisBoard = this.allBoards.find((board) => { return board.id == boardId })
+                this.currentBoardData.id = thisBoard.id
+                this.currentBoardData.name = thisBoard.name
+                this.currentBoardData.position = thisBoard.position
+                this.newBoardData = { ...this.currentBoardData }
+            },
+            async updateBoard() {
+                const nameIsEdited = this.currentBoardData.name !== this.newBoardData.name
+                if (nameIsEdited) {
+                    try {
+                        await axios.patch('/api/board/update',
+                            this.newBoardData,
+                            { headers: await requestHeader() }
+                        )
+                        this.$store.dispatch('board/updateBoard', { ...this.newBoardData })
+                    } catch (error) {
+                        errorResponseAlert(error)
+                        location.reload()
+                    }
+                }
+                this.updateBoardFormIsActivate = false
+                this.clickedUpdateBoard = false
             }
         },
         async created() {
@@ -462,18 +624,13 @@ $gin{define "script"}
                 this.nextPayment.setMonth(this.nextPayment.getMonth() + 1)
                 await this.fetchProjects()
                 await this.fetchUsernames()
-
             }
             this.dataFetched = true
             if (location.startsWith('/project/')) {
-                try {
-                    const response = await axios.post('/api/project/find', { id: this.thisProjecId }, { headers: await requestHeader() })
-                    this.thisProject = { ...response.data.project }
-                    this.thisProjectIsLoaded = true
-                    document.title = `Project - ${response.data.project.name}`
-                } catch (error) {
-                    errorResponseAlert(error)
-                }
+                await this.fetchThisProject()
+                document.title = `Project - ${this.thisProject.name}`
+                await this.fetchBoards()
+                this.thisProjectIsLoaded = true
             }
         },
         mounted() {

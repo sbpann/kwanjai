@@ -42,7 +42,7 @@ func FirebaseApp() *firebase.App {
 func FirestoreDB() *firestore.Client {
 	firestoreClient, err := FirebaseApp().Firestore(config.Context)
 	if err != nil {
-		log.Println(err)
+		log.Panic(err)
 	}
 	return firestoreClient
 }

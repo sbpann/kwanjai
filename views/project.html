@@ -1,4 +1,5 @@
 <html>
+
 <head>
     $gin{template "head" .}
     <title>Loading...</title>
@@ -11,22 +12,108 @@
         </template>
         <v-container id="project" v-else>
             <v-row>
-                <v-col cols="12" class="text-center text-h1">{{ thisProject.name }}</v-col>
-                <v-col cols="2" class="text-h4">Owner</v-col>
-                <v-col cols="10" class="text-h4">Members</v-col>
-                <v-col cols="2" class="text-h6">{{ thisProject.user }}</v-col>
-                <v-col cols="8">
-                <v-tooltip v-for="(member, index) in thisProject.members" :key="index" bottom>
-                    <template #activator="{ on, attrs }">
-                        <v-avatar size="35" v-bind="attrs" v-on="on">
-                            <img :src="`https://storage.googleapis.com/kwanjai-a3803.appspot.com/${member}.png`" @error="defaultProfilePicture" />
-                        </v-avatar>
-                    </template>
-                    <span>{{ member }}</span>
-                </v-tooltip>
+                <v-col cols="12" :class="$vuetify.breakpoint.smAndDown ? 'text-center text-h2' : 'text-center text-h1'">
+                    {{ thisProject.name }}</v-col>
+                <v-col cols="2" :class="$vuetify.breakpoint.smAndDown ? 'text-h6' : 'text-h4'">Owner</v-col>
+                <v-col cols="10" :class="$vuetify.breakpoint.smAndDown ? 'text-h6' : 'text-h4'">Members</v-col>
+                <v-col cols="2" :class="$vuetify.breakpoint.smAndDown ? '' : 'text-h4'">{{ thisProject.user }}</v-col>
+                <v-col cols="6">
+                    <v-tooltip
+                        v-for="(member, index) in thisProject.members.filter((element, index) => {return index <= ($vuetify.breakpoint.smAndDown ? 2 :14)} )"
+                        :key="index" bottom>
+                        <template #activator="{ on, attrs }">
+                            <v-avatar size="35" v-bind="attrs" v-on="on">
+                                <img :src="`https://storage.googleapis.com/kwanjai-a3803.appspot.com/${member}.png`"
+                                    @error="defaultProfilePicture" />
+                            </v-avatar>
+                        </template>
+                        <span>{{ member }}</span>
+                    </v-tooltip>
+                    <v-tooltip v-if="thisProject.members.length > ($vuetify.breakpoint.smAndDown ? 2 :14)" bottom>
+                        <template #activator="{ on, attrs }">
+                            <v-avatar size="35" v-bind="attrs" v-on="on" @click="showAllProjectMembers = true">
+                                +{{ thisProject.members.length - ($vuetify.breakpoint.smAndDown ? 2 :14)}}
+                            </v-avatar>
+                        </template>
+                        <span>+{{ thisProject.members.length - ($vuetify.breakpoint.smAndDown ? 2 :14)}}</span>
+                        <v-dialog v-model="showAllProjectMembers" overlay="false" max-width="500px">
+                            <v-card>
+                                <v-card-title>
+                                    Members
+                                </v-card-title>
+                                <v-card-text v-for="(member, index) in thisProject.members" :key="index">
+                                    <v-row no-gutters>
+                                        <v-col cols="2">
+                                            {{ member }}
+                                        </v-col>
+                                        <v-col cols="10">
+                                            <v-avatar><img
+                                                    :src="`https://storage.googleapis.com/kwanjai-a3803.appspot.com/${member}.png`"
+                                                    @error="defaultProfilePicture" /></v-avatar>
+                                        </v-col>
+                                    </v-row>
+                                </v-card-text>
+                            </v-card>
+                        </v-dialog>
+                    </v-tooltip>
                 </v-col>
-                <v-col cols="2" align="end">
-                    <v-btn>add new board</v-btn>
+                <v-col cols="4" align="end">
+                    <v-btn :disabled="exceedBoardLimit" @click="newBoardFormIsActivate = true">
+                        {{ !exceedBoardLimit ? 'New board' : 'Please upgrade plan for add more board'}}</v-btn>
+                </v-col>
+                <v-dialog v-model="newBoardFormIsActivate" hide-overlay max-width="500px">
+                    <v-card>
+                        <v-form @submit.prevent="addBoard(newBoardForm.name); newBoardFormIsActivate = false">
+                            <v-card-text>
+                                <v-text-field v-model="newBoardForm.name" label="Board name" id="id"></v-text-field>
+                            </v-card-text>
+                            <v-card-actions class="justify-center">
+                                <v-btn type="submit" color="info">add</v-btn>
+                            </v-card-actions>
+                        </v-form>
+                    </v-card>
+                </v-dialog>
+            </v-row>
+            <v-row>
+                <v-col v-for="board in allBoards" :key="board.id" :cols="cardCols">
+                    <v-card>
+                        <v-card-actions class="pb-0">
+                            <v-spacer></v-spacer>
+                            <v-dialog v-model="updateBoardFormIsActivate" hide-overlay max-width="500px">
+                                <v-card>
+                                    <v-form id="boardUpdateForm"
+                                        @submit.prevent="clickedUpdateBoard = true; updateBoard()">
+                                        <v-card-text>
+                                            <v-text-field hide-details="auto" required v-model="newBoardData.name"
+                                                label="board name"></v-text-field>
+                                        </v-card-text>
+                                        <v-card-actions class="justify-center">
+                                            <v-btn text type="submit" form="boardUpdateForm" color="info"
+                                                :loading="clickedUpdateBoard">update
+                                            </v-btn>
+                                        </v-card-actions>
+                                </v-card>
+                            </v-dialog>
+                            <v-btn :loading="!board.id" icon x-small @click="activeBoardUpdater(board.id)">
+                                <v-icon x-small>mdi-pencil</v-icon>
+                            </v-btn>
+                            <v-btn :loading="!board.id" icon x-small @click="removeBoard({id: board.id})">
+                                <v-icon x-small>mdi-delete</v-icon>
+                            </v-btn>
+                            <v-btn :loading="!board.id" icon x-small @click="moveBoard({id: board.id, action: 'down'})">
+                                <v-icon x-small>mdi-menu-left</v-icon>
+                            </v-btn>
+                            <v-btn :loading="!board.id" icon x-small @click="moveBoard({id: board.id, action: 'up'})">
+                                <v-icon x-small>mdi-menu-right</v-icon>
+                            </v-btn>
+                        </v-card-actions>
+                        <v-card-title class="pt-0">
+                            {{ board.name }}
+                        </v-card-title>
+                        <v-card-subtitle>
+                            position: {{ board.position }}
+                        </v-card-subtitle>
+                    </v-card>
                 </v-col>
             </v-row>
         </v-container>

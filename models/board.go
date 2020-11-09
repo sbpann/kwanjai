@@ -7,11 +7,11 @@ import (
 
 // Board model.
 type Board struct {
-	ID          string `json:"id"`
-	User        string `json:"user"`
-	Name        string `json:"name" binding:"required"`
-	Project     string `json:"project" binding:"required"`
-	Description string `json:"description"`
+	ID       string `json:"id"`
+	User     string `json:"user"`
+	Name     string `json:"name" binding:"required"`
+	Project  string `json:"project" binding:"required"`
+	Position int    `json:"position"`
 }
 
 func (board *Board) CreateBoard() (int, string, *Board) {

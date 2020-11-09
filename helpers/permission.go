@@ -54,11 +54,11 @@ func IsProjectMember(username string, projectUUID string) bool {
 }
 
 // IsOwner return ownership status (bool) and error.
-func IsOwner(username string, objectType string, objectUUID string) bool {
-	if objectUUID == "" || objectType == "" {
+func IsOwner(username string, objectType string, objectID string) bool {
+	if objectID == "" || objectType == "" {
 		return false
 	}
-	getObject, _ := libraries.FirestoreFind(objectType, objectUUID) // objectUUID != "" ensures no error.
+	getObject, _ := libraries.FirestoreFind(objectType, objectID) // objectID != "", objectType != "" ensures no error.
 	if !getObject.Exists() {
 		return false
 	}
