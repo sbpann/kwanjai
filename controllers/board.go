@@ -71,6 +71,13 @@ func NewBoard() gin.HandlerFunc {
 			log.Panic(nil)
 		}
 		boardNumber := len(allBoards)
+
+		// Check plan limit
+		if helpers.ExceedBoardLimit(ginContext, boardNumber) {
+			ginContext.JSON(http.StatusBadRequest, gin.H{"message": "Board exceed plan limit."})
+			return
+		}
+
 		board.Position = boardNumber + 1
 		status, message, _ := board.CreateBoard()
 		ginContext.JSON(status,

@@ -1,9 +1,11 @@
 package controllers
 
 import (
+	"kwanjai/config"
 	"kwanjai/helpers"
 	"kwanjai/libraries"
 	"kwanjai/models"
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -133,7 +135,20 @@ func DeleteProject() gin.HandlerFunc {
 			ginContext.JSON(http.StatusForbidden, gin.H{"message": "You cannot perform this action."})
 			return
 		}
-		status, message, project = project.DeleteProject()
+		status, message, _ = project.DeleteProject()
+		db := libraries.FirestoreDB()
+		searchBoard := db.Collection("boards").Where("Project", "==", project.ID).Documents(config.Context)
+		allBoard, err := searchBoard.GetAll()
+		if err != nil {
+			log.Panic(err)
+		}
+		board := new(models.Board)
+		for _, b := range allBoard {
+			b.DataTo(board)
+			board.ID = b.Ref.ID
+			board.DeleteBoard()
+		}
+		db.Close()
 		ginContext.JSON(status,
 			gin.H{
 				"message": message,

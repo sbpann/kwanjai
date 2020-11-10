@@ -11,21 +11,22 @@ type Post struct {
 	ID           string     `json:"id"`
 	Board        string     `json:"board" binding:"required"`
 	Project      string     `json:"project"` // It's an advantage for checking project membership.
-	User         string     `json:"username"`
+	User         string     `json:"user"`
 	Title        string     `json:"title" binding:"required"`
-	Body         string     `json:"body" binding:"required"`
+	Content      string     `json:"content" binding:"required"`
 	Comments     []*Comment `json:"comments"`
-	Completed    bool       `json:"is_completed"`
-	Urgent       bool       `json:"is_urgent"`
+	Completed    bool       `json:"completed"`
+	Urgent       bool       `json:"urgent"`
 	People       []string   `json:"people"`
 	AddedDate    time.Time  `json:"added_date"`
 	LastModified time.Time  `json:"last_modified"`
+	DueDate      time.Time  `json:"due_date" binding:"required"`
 }
 
 // Comment model.
 type Comment struct {
 	UUID         string    `json:"uuid"`
-	User         string    `json:"username"`
+	User         string    `json:"user"`
 	Body         string    `json:"body"`
 	AddedDate    time.Time `json:"added_date"`
 	LastModified time.Time `json:"last_modified"`

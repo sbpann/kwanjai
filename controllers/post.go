@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"kwanjai/helpers"
 	"kwanjai/libraries"
 	"kwanjai/models"
@@ -30,8 +31,9 @@ func AllPost() gin.HandlerFunc {
 		for _, p := range searchPosts {
 			post := new(models.Post)
 			p.DataTo(post)
+			post.ID = p.Ref.ID
 			// check project membership
-			if helpers.IsProjectMember(username, post.Project) {
+			if !helpers.IsProjectMember(username, post.Project) {
 				ginContext.JSON(http.StatusForbidden, gin.H{"message": "You cannot perform this action."})
 				return
 			}
@@ -58,9 +60,11 @@ func NewPost() gin.HandlerFunc {
 		getBoard, err := libraries.FirestoreFind("boards", post.Board)
 		if err != nil {
 			ginContext.JSON(http.StatusInternalServerError, err.Error())
+			return
 		}
 		if !getBoard.Exists() {
 			ginContext.JSON(http.StatusNotFound, "Board not found.")
+			return
 		}
 		board := new(models.Board)
 		getBoard.DataTo(board)
@@ -120,18 +124,21 @@ func UpdatePost() gin.HandlerFunc {
 		}
 
 		// Check post ownership
-		if !helpers.IsOwner(username, "post", post.ID) {
+		if !helpers.IsOwner(username, "posts", post.ID) {
 			ginContext.JSON(http.StatusForbidden, gin.H{"message": "You cannot perform this action."})
 			return
 		}
 
-		status, message, post := post.UpdatePost("Title", post.Title)
-		status, message, post = post.UpdatePost("Body", post.Body)
-		status, message, post = post.UpdatePost("Completed", post.Completed)
-		status, message, post = post.UpdatePost("Urgent", post.Urgent)
-		status, message, post = post.UpdatePost("People", post.People)
-		status, message, post = post.UpdatePost("LastModified", time.Now().Truncate(time.Millisecond))
-		status, message, post = post.FindPost()
+		fmt.Println(post.DueDate)
+		status, message, _ := post.UpdatePost("Board", post.Board)
+		status, message, _ = post.UpdatePost("Title", post.Title)
+		status, message, _ = post.UpdatePost("Content", post.Content)
+		status, message, _ = post.UpdatePost("Completed", post.Completed)
+		status, message, _ = post.UpdatePost("Urgent", post.Urgent)
+		status, message, _ = post.UpdatePost("People", post.People)
+		status, message, _ = post.UpdatePost("LastModified", time.Now().Truncate(time.Millisecond))
+		status, message, _ = post.UpdatePost("DueDate", post.DueDate)
+		status, message, _ = post.FindPost()
 		ginContext.JSON(status,
 			gin.H{
 				"message": message,

@@ -1,7 +1,9 @@
 package models
 
 import (
+	"kwanjai/config"
 	"kwanjai/libraries"
+	"log"
 	"net/http"
 )
 
@@ -51,5 +53,18 @@ func (board *Board) DeleteBoard() (int, string, *Board) {
 	if err != nil {
 		return http.StatusInternalServerError, err.Error(), nil
 	}
+	db := libraries.FirestoreDB()
+	searchPost := db.Collection("posts").Where("Board", "==", board.ID).Documents(config.Context)
+	allPost, err := searchPost.GetAll()
+	if err != nil {
+		log.Panic(err)
+	}
+	post := new(Post)
+	for _, p := range allPost {
+		p.DataTo(post)
+		post.ID = p.Ref.ID
+		post.DeletePost()
+	}
+	db.Close()
 	return http.StatusOK, "Deleted sucessfully.", nil
 }

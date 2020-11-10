@@ -95,7 +95,7 @@ func getServer(mode string) *gin.Engine {
 	{
 		post.POST("/all", controllers.AllPost())
 		post.POST("/new", controllers.NewPost())
-		post.PATCH("/find", controllers.FindPost())
+		post.PATCH("/update", controllers.UpdatePost())
 		post.DELETE("/delete", controllers.DeletePost())
 		post.POST("/comment/new", controllers.NewComment())
 		post.PATCH("/comment/update", controllers.UpdateComment())

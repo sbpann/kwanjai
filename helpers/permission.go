@@ -31,6 +31,22 @@ func ExceedProjectLimit(ginContext *gin.Context) bool {
 	}
 }
 
+// ExceedBoardLimit
+func ExceedBoardLimit(ginContext *gin.Context, currentBoard int) bool {
+	user, _ := ginContext.Get("user") // user always exists
+	plan := user.(*models.User).Plan
+	switch plan {
+	case "Starter":
+		return !(currentBoard < 2)
+	case "Plus":
+		return !(currentBoard < 3)
+	case "Pro":
+		return false
+	default:
+		return true
+	}
+}
+
 // IsSuperUser fucntion returns superuser status (bool).
 func IsSuperUser(ginContext *gin.Context) bool {
 	user, _ := ginContext.Get("user") // user always exists
@@ -39,18 +55,15 @@ func IsSuperUser(ginContext *gin.Context) bool {
 }
 
 // IsProjectMember return membership status (bool) and error.
-func IsProjectMember(username string, projectUUID string) bool {
-	if projectUUID == "" {
+func IsProjectMember(username string, projectID string) bool {
+	if projectID == "" {
 		return false
 	}
 	project := new(models.Project)
-	getProject, _ := libraries.FirestoreFind("projects", projectUUID) // projectUUID != "" ensures no error.
+	getProject, _ := libraries.FirestoreFind("projects", projectID) // projectID != "" ensures no error.
 	getProject.DataTo(project)
 	_, found := libraries.Find(project.Members, username)
-	if !found {
-		return false
-	}
-	return true
+	return found
 }
 
 // IsOwner return ownership status (bool) and error.

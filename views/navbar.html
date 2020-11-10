@@ -1,7 +1,7 @@
 $gin{define "navbar"}
 <v-app-bar id="navbar" app dense color="primary">
     <v-row no-gutters>
-        <v-col :cols="$vuetify.breakpoint.smAndUp ? 3 : 10">
+        <v-col :cols="$vuetify.breakpoint.smAndUp ? 4 : 10">
             <v-btn :class="$vuetify.breakpoint.smAndUp ? 'mr-2' : ''" @click="
                       $vuetify.theme.dark = !$vuetify.theme.dark;
                     ">
@@ -20,21 +20,23 @@ $gin{define "navbar"}
                 </template>
                 <v-list>
                     <v-list-item v-for="project in allProjects" :key="project.id">
-                        <v-list-item-title :href="`/project/${project.id}`">
+                        <a :href="project.id ? `/project/${project.id}` : '#'" :style="`text-decoration: none; ${$vuetify.theme.dark ? 'color: white': 'color: black'}`">
+                        <v-list-item-title>
                             {{ project.name.substring(0, 16) + (project.name.length > 16 ? '...' : '' ) }}
                         </v-list-item-title>
+                        </a>
                     </v-list-item>
                 </v-list>
             </v-menu>
         </v-col>
-        <v-col cols="6" v-if="$vuetify.breakpoint.smAndUp">
+        <v-col cols="4" v-if="$vuetify.breakpoint.smAndUp">
             <v-container fill-height class="pa-0">
                 <v-toolbar-title class="font-weight-medium white--text ma-auto">
                     K W A N J A I
                 </v-toolbar-title>
             </v-container>
         </v-col>
-        <v-col :cols="$vuetify.breakpoint.smAndUp ? 3 : 2" align="end">
+        <v-col :cols="$vuetify.breakpoint.smAndUp ? 4 : 2" align="end">
             <v-btn @click="navigationDrawer = !navigationDrawer">
                 <v-icon>mdi-account</v-icon>
             </v-btn>
@@ -47,8 +49,8 @@ $gin{define "navbar"}
         <v-card-text>
             <v-form id="loginForm"
                 @submit.prevent="clickedLogin = true; loginAndReload(loginForm.id, loginForm.password);">
-                <v-text-field v-model="loginForm.id" label="username or email"></v-text-field>
-                <v-text-field v-model="loginForm.password" type="password" label="password"></v-text-field>
+                <v-text-field v-model="loginForm.id" label="username or email" required></v-text-field>
+                <v-text-field v-model="loginForm.password" type="password" label="password" required></v-text-field>
             </v-form>
         </v-card-text>
         <v-card-actions class="justify-center">

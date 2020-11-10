@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/go-playground/assert/v2"
 )
@@ -394,7 +395,8 @@ func TestCreateAndDeletePost(t *testing.T) {
 	post := new(models.Post)
 	post.Board = createdBoardID
 	post.Title = "My post"
-	post.Body = "My this post is created for testing."
+	post.Content = "My this post is created for testing."
+	post.DueDate = time.Now().Add(24 * time.Hour)
 	b, _ = json.Marshal(post)
 	writer = httptest.NewRecorder()
 	request, _ = http.NewRequest("POST", "/api/post/new", bytes.NewBuffer([]byte(b)))
@@ -488,7 +490,8 @@ func TestCreateAndDeleteComment(t *testing.T) {
 	post := new(models.Post)
 	post.Board = createdBoardID
 	post.Title = "My post"
-	post.Body = "My this post is created for testing."
+	post.Content = "My this post is created for testing."
+	post.DueDate = time.Now().Add(24 * time.Hour)
 	b, _ = json.Marshal(post)
 	writer = httptest.NewRecorder()
 	request, _ = http.NewRequest("POST", "/api/post/new", bytes.NewBuffer([]byte(b)))
