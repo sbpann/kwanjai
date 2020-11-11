@@ -452,11 +452,22 @@ $gin{define "script"}
                 dispatch('fetchPosts')
             } catch (error) {
                 errorResponseAlert(error)
+                location.reload()
             }
         },
         updatePost({ commit, dispatch }, post) {
             commit('updatePost', post)
             dispatch('fetchPosts')
+        },
+        async removePost({ commit, dispatch }, { id }) {
+            try {
+                commit('removePost', id)
+                await axios.delete('/api/post/delete', { headers: await requestHeader(), data: { id } })
+                dispatch('fetchPosts')
+            } catch (error) {
+                errorResponseAlert(error)
+                location.reload()
+            }
         },
         async toggleCompleteStatus({ commit, getters, dispatch }, { id, board }) {
             commit('toggleCompleteStatus', { id, board })
@@ -515,6 +526,9 @@ $gin{define "script"}
         updatePost(state, post) {
             const index = state.allPosts.findIndex((element) => { return element.id == post.id })
             state.allPosts[index] = { ...post }
+        },
+        removePost(state, id) {
+            state.allPosts = state.allPosts.filter(element => {return element.id !== id})
         },
         toggleCompleteStatus(state, { id, board }) {
             state.allPosts.find(element => { return element.id == id }).completed = !state.allPosts.find(element => { return element.id == id }).completed
@@ -578,6 +592,8 @@ $gin{define "script"}
             clickedUnsubscribe: false,
             clickedUpdateBoard: false,
             clickedUpdatePost: false,
+            clickedVerifyEmail: false,
+            emailKey: '',
             projectCreateFormIsActivated: false,
             projectCreateForm: {},
             registrationFormIsActivated: false,
@@ -602,7 +618,9 @@ $gin{define "script"}
             updatePostFormIsActivated: false,
             currentPostData: {},
             newPostData: {},
-            profilePicture: {}
+            profilePicture: {},
+            clickedResend: false,
+            emailIsResend: false
         }),
         computed: {
             ...Vuex.mapGetters('authentication', ['getAuthenticationStatus', 'getUser']),
@@ -672,7 +690,7 @@ $gin{define "script"}
             ...Vuex.mapActions('authentication', ['login', 'logout', 'register', 'fecthUserData']),
             ...Vuex.mapActions('project', ['fetchProjects', 'addProject', 'removeProject']),
             ...Vuex.mapActions('board', ['fetchThisProject', 'fetchBoards', 'addBoard', 'removeBoard', 'moveBoard']),
-            ...Vuex.mapActions('post', ['fetchPosts', 'addPost', 'toggleCompleteStatus', 'toggleUrgentStatus', 'movePost']),
+            ...Vuex.mapActions('post', ['fetchPosts', 'addPost', 'toggleCompleteStatus', 'toggleUrgentStatus', 'movePost', 'removePost']),
             ...Vuex.mapActions('shared', ['fetchUsernames']),
             async loginAndReload(id, password) {
                 await this.login({ id, password });
@@ -838,6 +856,28 @@ $gin{define "script"}
                 this.updatePostFormIsActivated = false
                 this.clickedUpdatePost = false
             },
+            async verifyEmail() {
+                const emailID = JSON.parse(`$gin{ .emailID }`)
+                try {
+                    await axios.post(`/api/authentication/verify_email/${emailID}`, { key: this.emailKey })
+                    alert('Verified successfully.')
+                    window.location = '/'
+                } catch (error) {
+                    errorResponseAlert(error)
+                    location.reload()
+                }
+            },
+            async resendEmail() {
+                this.clickedResend = true
+                try {
+                    await axios.post(`/api/authentication/resend_verification_email`, { email: this.getUser.profile.email }, { headers: await requestHeader() })
+                } catch (error) {
+                    errorResponseAlert(error)
+                    location.reload()
+                }
+                this.clickedResend = false
+                this.emailIsResend = true
+            }
         },
         async created() {
             const location = window.location.pathname

@@ -20,10 +20,11 @@ $gin{define "navbar"}
                 </template>
                 <v-list>
                     <v-list-item v-for="project in allProjects" :key="project.id">
-                        <a :href="project.id ? `/project/${project.id}` : '#'" :style="`text-decoration: none; ${$vuetify.theme.dark ? 'color: white': 'color: black'}`">
-                        <v-list-item-title>
-                            {{ project.name.substring(0, 16) + (project.name.length > 16 ? '...' : '' ) }}
-                        </v-list-item-title>
+                        <a :href="project.id ? `/project/${project.id}` : '#'"
+                            :style="`text-decoration: none; ${$vuetify.theme.dark ? 'color: white': 'color: black'}`">
+                            <v-list-item-title>
+                                {{ project.name.substring(0, 16) + (project.name.length > 16 ? '...' : '' ) }}
+                            </v-list-item-title>
                         </a>
                     </v-list-item>
                 </v-list>
@@ -118,9 +119,13 @@ $gin{define "navbar"}
             </p>
         </v-card-title>
         <v-card-subtitle class="text-center py-0">
-            <v-chip :color="getUser.profile.is_verified ? 'success' : ''" x-small>
+            <v-chip :color="getUser.profile.is_verified ? 'success' : ''" small size="35">
                 {{ getUser.profile.is_verified ? 'verified' : 'not verified' }}
             </v-chip>
+            <p class="my-0 py-1">
+                <v-btn :disabled="emailIsResend" v-if="!getUser.profile.is_verified" color="info" text x-small :loading="clickedResend"
+                    @click="resendEmail()">{{ emailIsResend ? 'sent' : 'resend verification email' }}</v-btn>
+            </p>
             <p>
                 {{ getUser.profile.email }}
             </p>
@@ -153,7 +158,8 @@ $gin{define "navbar"}
                             <v-card-actions>
                                 <v-btn color="error" @click="unsubrsciptionFormIsActivated = false">discard</v-btn>
                                 <v-spacer></v-spacer>
-                                <v-btn color="success" :loading="clickedUnsubscribe" @click="unsubscribe()">accept and confirm</v-btn>
+                                <v-btn color="success" :loading="clickedUnsubscribe" @click="unsubscribe()">accept and
+                                    confirm</v-btn>
                             </v-card-actions>
                         </v-card>
                     </v-dialog>
@@ -170,10 +176,10 @@ $gin{define "navbar"}
             </v-row>
         </v-card-text>
         <v-card-subtitle v-if="this.dataFetched && getUser.profile.plan != 'Starter'" class="text-center py-0">
-                {{ `Your next payment is ${nextPayment.toLocaleDateString()}` }}
+            {{ `Your next payment is ${nextPayment.toLocaleDateString()}` }}
         </v-card-subtitle>
         <v-card-subtitle class="text-center py-0">
-                {{ getUser.profile.plan != 'Pro' ? 'You can upgrade your plan.' : 'Thank you for you subscription!'}}
+            {{ getUser.profile.plan != 'Pro' ? 'You can upgrade your plan.' : 'Thank you for you subscription!'}}
         </v-card-subtitle>
         <v-card-text class="text-center py-0">
             {{ selectedPlan != '' ? `Price: $${plans.find(element => {return element.name == selectedPlan}).price}/month` : '' }}
@@ -203,25 +209,28 @@ $gin{define "navbar"}
         </v-dialog>
         <v-card-actions class="justify-center pt-8">
             <v-btn text outlined color="info" @click="activateProfileEditor()">Edit profile</v-btn>
-            <v-dialog
-                v-model="profileEditorIsActivated"
-                hide-overlay
-                max-width="500px"
-            >
+            <v-dialog v-model="profileEditorIsActivated" hide-overlay max-width="500px">
                 <v-card>
-                <v-card-text class="pt-2">
-                    <v-form @submit.prevent="updateProfile" id="updateProfileForm">
-                    <v-container style="width: 200px; height: 200px;">
-                        <v-img :src="newUserProfile.profile_picture ? createObjectURL(newUserProfile.profile_picture) : getUser.profile.profile_picture" max-width="100%" max-height="100%"></v-img>
-                    </v-container>
-                    <v-file-input label="Profile picture" ref="imageFileField" v-model="newUserProfile.profile_picture" prepend-icon="mdi-image" color="black" hide-details type="file"></v-file-input>
-                    <v-text-field label="Firstname" v-model="newUserProfile.firstname" hide-details></v-text-field>
-                    <v-text-field label="Lastname" v-model="newUserProfile.lastname" hide-details></v-text-field>
-                    </v-form>
-                </v-card-text>
-                <v-card-actions class="justify-center">
-                <v-btn type="submit" form="updateProfileForm" :loading="clickedUpdateProfile" color="success">save</v-btn>
-                </v-card-actions>
+                    <v-card-text class="pt-2">
+                        <v-form @submit.prevent="updateProfile" id="updateProfileForm">
+                            <v-container style="width: 200px; height: 200px;">
+                                <v-img
+                                    :src="newUserProfile.profile_picture ? createObjectURL(newUserProfile.profile_picture) : getUser.profile.profile_picture"
+                                    max-width="100%" max-height="100%"></v-img>
+                            </v-container>
+                            <v-file-input label="Profile picture" ref="imageFileField"
+                                v-model="newUserProfile.profile_picture" prepend-icon="mdi-image" color="black"
+                                hide-details type="file"></v-file-input>
+                            <v-text-field label="Firstname" v-model="newUserProfile.firstname" hide-details>
+                            </v-text-field>
+                            <v-text-field label="Lastname" v-model="newUserProfile.lastname" hide-details>
+                            </v-text-field>
+                        </v-form>
+                    </v-card-text>
+                    <v-card-actions class="justify-center">
+                        <v-btn type="submit" form="updateProfileForm" :loading="clickedUpdateProfile" color="success">
+                            save</v-btn>
+                    </v-card-actions>
                 </v-card>
             </v-dialog>
             <v-spacer></v-spacer>

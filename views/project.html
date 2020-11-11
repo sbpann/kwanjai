@@ -181,7 +181,7 @@
                 </v-dialog>
                 <v-col v-for="board in allBoards" :key="board.id" :cols="cardCols">
                     <v-card :class="!$vuetify.theme.dark ? 'pb-1 secondary' : 'pb-1 secondary'">
-                        <v-card-actions class="pb-0">
+                        <v-card-actions class="pb-0" v-if="getUser.profile.username == thisProject.user">
                             <v-btn v-if="$vuetify.breakpoint.smAndDown" x-small icon :loading="!board.id"
                                 @click="newPostFormIsActivated = true, newPostForm.board = board.id">
                                 <v-icon x-small>mdi-plus</v-icon>
@@ -209,7 +209,7 @@
 
                         <v-card class="ma-2" v-for="post in allPosts.filter(post => {return post.board == board.id})"
                             :style="`border-left: 4px solid ${post.completed ? 'green' : (new Date(post.due_date) < new Date() ? 'red' : (post.urgent ? 'orange': ''))}`">
-                            <v-card-actions class="pb-0">
+                            <v-card-actions class="pb-0" v-if="getUser.profile.username == post.user">
                                 <v-btn x-small icon :loading="!post.id" :color="post.completed ? 'green' : ''"
                                     @click="toggleCompleteStatus({id: post.id, board: post.board})">
                                     <v-icon x-small>mdi-check</v-icon>
@@ -221,6 +221,9 @@
                                 <v-btn x-small icon :loading="!post.id" @click="activePostUpdater(post.id)">
                                     <v-icon x-small>mdi-pencil</v-icon>
                                 </v-btn>
+                                <v-btn x-small icon :loading="!post.id" @click="removePost({id: post.id})">
+                                    <v-icon x-small>mdi-delete</v-icon>
+                                </v-btn>
                                 <v-spacer></v-spacer>
                                 <v-btn :loading="!post.id" icon x-small
                                     @click="movePost({id: post.id, board: post.board, action: 'down'})">
@@ -231,7 +234,7 @@
                                     <v-icon x-small>mdi-menu-right</v-icon>
                                 </v-btn>
                             </v-card-actions>
-                            <v-card-title class="pt-0">
+                            <v-card-title :class="getUser.profile.username == post.user ? 'pt-0' : ''">
                                 {{ post.title }}
                             </v-card-title>
                             <v-card-subtitle>

@@ -8,6 +8,7 @@ import (
 	"math/rand"
 	"net/http"
 	"net/smtp"
+	"strings"
 	"time"
 
 	"google.golang.org/grpc/codes"
@@ -38,6 +39,10 @@ func (email *VerificationEmail) Send() (int, string) {
 	from := "surus.d6101@gmail.com"
 	password := config.EmailServicePassword
 	to := []string{email.Email}
+	if strings.Contains(to[0], "@example.com") {
+		log.Println("email contain @example.com")
+		return http.StatusOK, "Email sent."
+	}
 	verificationLink := fmt.Sprintf("%v/verify_email/%v/", config.FrontendURL, email.ID)
 	message := fmt.Sprintf("From: Kwanjai Admin <surus.d6101@gmail.com>\r\n"+
 		"To: %v\r\n"+

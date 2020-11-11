@@ -34,10 +34,6 @@ func (user *User) Register() (int, string, *User) {
 	if status != http.StatusCreated || user == nil {
 		return status, message, user
 	}
-	if strings.Contains(user.Email, "example.com") {
-		log.Println(user.Email + "contains example.com")
-		return http.StatusOK, "Created account successfully.", user
-	}
 	status, message = user.SendVerificationEmail()
 	return status, message, user
 }
