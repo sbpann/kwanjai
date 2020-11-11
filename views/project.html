@@ -14,13 +14,19 @@
             <v-row>
                 <v-col cols="12" :class="$vuetify.breakpoint.smAndDown ? 'text-center text-h2' : 'text-center text-h1'">
                     {{ thisProject.name }}</v-col>
-                <v-col :cols="$vuetify.breakpoint.smAndDown ? 3 : 2" :class="$vuetify.breakpoint.smAndDown ? 'text-h6' : 'text-h4'" style="border-left: 4px solid #9A1414;">Owner</v-col>
-                <v-col :cols="$vuetify.breakpoint.smAndDown ? 9 : 10" :class="$vuetify.breakpoint.smAndDown ? 'text-h6' : 'text-h4'" style="border-left: 4px solid #9A1414;">Members</v-col>
-                <v-col :cols="$vuetify.breakpoint.smAndDown ? 3 : 2" :class="$vuetify.breakpoint.smAndDown ? '' : 'text-h4'">
+                <v-col :cols="$vuetify.breakpoint.smAndDown ? 3 : 2"
+                    :class="$vuetify.breakpoint.smAndDown ? 'text-h6' : 'text-h4'"
+                    style="border-left: 4px solid #9A1414;">Owner</v-col>
+                <v-col :cols="$vuetify.breakpoint.smAndDown ? 9 : 10"
+                    :class="$vuetify.breakpoint.smAndDown ? 'text-h6' : 'text-h4'"
+                    style="border-left: 4px solid #9A1414;">Members</v-col>
+                <v-col :cols="$vuetify.breakpoint.smAndDown ? 3 : 2"
+                    :class="$vuetify.breakpoint.smAndDown ? '' : 'text-h4'">
                     <v-tooltip bottom>
                         <template #activator="{ on, attrs }">
                             <v-avatar size="35" v-bind="attrs" v-on="on">
-                                <v-img :src="`https://storage.googleapis.com/kwanjai-a3803.appspot.com/${thisProject.user}.png`" />
+                                <v-img
+                                    :src="`https://storage.googleapis.com/kwanjai-a3803.appspot.com/${thisProject.user}.png`" />
                             </v-avatar>
                         </template>
                         <span>{{ thisProject.user }}</span>
@@ -32,7 +38,8 @@
                         :key="index" bottom>
                         <template #activator="{ on, attrs }">
                             <v-avatar size="35" v-bind="attrs" v-on="on">
-                                <v-img :src="`https://storage.googleapis.com/kwanjai-a3803.appspot.com/${member}.png`"/>
+                                <v-img
+                                    :src="`https://storage.googleapis.com/kwanjai-a3803.appspot.com/${member}.png`" />
                             </v-avatar>
                         </template>
                         <span>{{ member }}</span>
@@ -44,26 +51,27 @@
                             </v-avatar>
                         </template>
                         <span>+{{ thisProject.members.length - ($vuetify.breakpoint.smAndDown ? 4 :9)}}</span>
-                        <v-dialog v-model="showAllProjectMembers" hide-overlay max-width="500px">
-                            <v-card>
-                                <v-card-title>
-                                    Members
-                                </v-card-title>
-                                <v-card-text v-for="(member, index) in thisProject.members" :key="index">
-                                    <v-row no-gutters>
-                                        <v-col cols="2">
-                                            {{ member }}
-                                        </v-col>
-                                        <v-col cols="10">
-                                            <v-avatar>
-                                            <v-img :src="`https://storage.googleapis.com/kwanjai-a3803.appspot.com/${member}.png`"/>
-                                        </v-avatar>
-                                        </v-col>
-                                    </v-row>
-                                </v-card-text>
-                            </v-card>
-                        </v-dialog>
                     </v-tooltip>
+                    <v-dialog v-model="showAllProjectMembers" hide-overlay max-width="500px">
+                        <v-card>
+                            <v-card-title>
+                                Members
+                            </v-card-title>
+                            <v-card-text v-for="(member, index) in thisProject.members" :key="index">
+                                <v-row no-gutters>
+                                    <v-col cols="2">
+                                        {{ member }}
+                                    </v-col>
+                                    <v-col cols="10">
+                                        <v-avatar>
+                                            <v-img
+                                                :src="`https://storage.googleapis.com/kwanjai-a3803.appspot.com/${member}.png`" />
+                                        </v-avatar>
+                                    </v-col>
+                                </v-row>
+                            </v-card-text>
+                        </v-card>
+                    </v-dialog>
                     <v-dialog v-model="projectUpdateFormIsActivated" hide-overlay max-width="500px">
                         <v-card>
                             <v-form id="projectUpdateForm"
@@ -245,6 +253,35 @@
                             </v-card-text>
                             <v-card-subtitle>
                                 Due: {{ new Date(post.due_date).toLocaleString().substring(0,10) }}
+                            </v-card-subtitle>
+                            <v-card-subtitle>
+                                People: <v-tooltip v-if="post.people.length == 0" bottom>
+                                    <template #activator="{ on, attrs }">
+                                        <v-avatar size="20" v-bind="attrs" v-on="on">
+                                            +0
+                                        </v-avatar>
+                                    </template>
+                                    <span>no people tagged in this task</span>
+                                </v-tooltip>
+                                <v-tooltip
+                                    v-for="(people, index) in post.people.filter((element, index) => {return index <= 4} )"
+                                    :key="index" bottom>
+                                    <template #activator="{ on, attrs }">
+                                        <v-avatar size="20" v-bind="attrs" v-on="on">
+                                            <v-img
+                                                :src="`https://storage.googleapis.com/kwanjai-a3803.appspot.com/${people}.png`" />
+                                        </v-avatar>
+                                    </template>
+                                    <span>{{ people }}</span>
+                                </v-tooltip>
+                                <v-tooltip v-if="post.people.length > 4" bottom>
+                                    <template #activator="{ on, attrs }">
+                                        <v-avatar size="20" v-bind="attrs" v-on="on" @click="">
+                                            +{{ post.people.length - 4}}
+                                        </v-avatar>
+                                    </template>
+                                    <span>+{{ post.people.length - 4}}</span>
+                                </v-tooltip>
                             </v-card-subtitle>
                         </v-card>
                     </v-card>

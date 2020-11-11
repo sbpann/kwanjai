@@ -891,6 +891,7 @@ $gin{define "script"}
             this.dataFetched = true
             if (location.startsWith('/project/')) {
                 await this.fetchThisProject()
+                await this.fetchUsernames()
                 document.title = `Project - ${this.thisProject.name}`
                 await this.fetchBoards()
                 await this.fetchPosts()
