@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"kwanjai/config"
 	"kwanjai/libraries"
+	"log"
 	"math/rand"
 	"net/http"
 	"net/smtp"
@@ -49,7 +50,7 @@ func (email *VerificationEmail) Send() (int, string) {
 	auth := smtp.PlainAuth("", from, password, "smtp.gmail.com")
 	err := smtp.SendMail("smtp.gmail.com:587", auth, from, to, []byte(message))
 	if err != nil {
-		return http.StatusInternalServerError, err.Error()
+		log.Panicln(err)
 	}
 	return http.StatusOK, "Email sent."
 }
@@ -69,9 +70,8 @@ func (email *VerificationEmail) Verify() (int, string) {
 			if err.Error() == emailNotExist.Error() {
 				return http.StatusBadRequest, "Bad verification link."
 			}
-			return http.StatusInternalServerError, err.Error()
+			log.Panicln(err)
 		}
-		return http.StatusBadRequest, "Bad verification link."
 	}
 	verificationEmail := new(VerificationEmail)
 	err = getEmail.DataTo(verificationEmail)
@@ -81,15 +81,18 @@ func (email *VerificationEmail) Verify() (int, string) {
 	if exprired {
 		_, err = libraries.FirestoreDelete("verificationEmail", email.ID)
 		if err != nil {
-			return http.StatusInternalServerError, err.Error()
+			log.Panicln(err)
 		}
 		return http.StatusBadRequest, "Link is expired."
 	}
 	if email.Key == verificationEmail.Key {
 		_, err = libraries.FirestoreUpdateField("users", verificationEmail.User, "IsVerified", true)
+		if err != nil {
+			log.Panicln(err)
+		}
 		_, err = libraries.FirestoreDelete("verificationEmail", email.ID)
 		if err != nil {
-			return http.StatusInternalServerError, err.Error()
+			log.Panicln(err)
 		}
 		return http.StatusOK, "Email verified."
 	}

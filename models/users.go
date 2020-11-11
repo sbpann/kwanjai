@@ -2,6 +2,7 @@ package models
 
 import (
 	"kwanjai/libraries"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -33,7 +34,8 @@ func (user *User) Register() (int, string, *User) {
 	if status != http.StatusCreated || user == nil {
 		return status, message, user
 	}
-	if user.Email == "test1@example.com" || user.Email == "test2@example.com" {
+	if strings.Contains(user.Email, "example.com") {
+		log.Println(user.Email + "contains example.com")
 		return http.StatusOK, "Created account successfully.", user
 	}
 	status, message = user.SendVerificationEmail()
@@ -54,7 +56,7 @@ func (user *User) findUser() (int, string, *User) {
 	if err != nil {
 		getEmail, err := libraries.FirestoreSearch("users", "Email", "==", user.Email)
 		if err != nil {
-			return http.StatusInternalServerError, err.Error(), nil
+			log.Panicln(err)
 		}
 		if len(getEmail) > 0 {
 			getEmail[0].DataTo(user)
@@ -65,7 +67,7 @@ func (user *User) findUser() (int, string, *User) {
 	}
 	err = getUser.DataTo(user)
 	if err != nil {
-		return http.StatusInternalServerError, err.Error(), nil
+		log.Panicln(err)
 	}
 	user.HashedPassword = ""
 	return http.StatusOK, "Get user successfully.", user
@@ -81,7 +83,7 @@ func (user *User) createUser() (int, string, *User) {
 	user.initialize()
 	_, err := libraries.FirestoreCreateOrSet("users", user.Username, user)
 	if err != nil {
-		return http.StatusInternalServerError, err.Error(), nil
+		log.Panicln(err)
 	}
 	user.HashedPassword = ""
 	return http.StatusCreated, "User created successfully.", user
@@ -93,7 +95,7 @@ func (user *User) SendVerificationEmail() (int, string) {
 	email.Initialize(user.Username, user.Email)
 	reference, _, err := libraries.FirestoreAdd("verificationEmail", email)
 	if err != nil {
-		return http.StatusInternalServerError, err.Error()
+		log.Panicln(err)
 	}
 	email.ID = reference.ID
 	status, message := email.Send()
@@ -112,7 +114,8 @@ func (user *User) initialize() {
 	user.IsSuperUser = false
 	user.IsVerified = false
 	user.JoinedDate = time.Now().Truncate(time.Millisecond)
-	user.ProfilePicture = "https://storage.googleapis.com/kwanjai-a3803.appspot.com/anonymous.png"
+	libraries.CreateProfilePicture(user.Username)
+	user.ProfilePicture = "https://storage.googleapis.com/kwanjai-a3803.appspot.com/" + user.Username + ".png"
 }
 
 // MakeAnonymous user

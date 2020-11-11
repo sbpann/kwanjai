@@ -202,6 +202,29 @@ $gin{define "navbar"}
             </v-card>
         </v-dialog>
         <v-card-actions class="justify-center pt-8">
+            <v-btn text outlined color="info" @click="activateProfileEditor()">Edit profile</v-btn>
+            <v-dialog
+                v-model="profileEditorIsActivated"
+                hide-overlay
+                max-width="500px"
+            >
+                <v-card>
+                <v-card-text class="pt-2">
+                    <v-form @submit.prevent="updateProfile" id="updateProfileForm">
+                    <v-container style="width: 200px; height: 200px;">
+                        <v-img :src="newUserProfile.profile_picture ? createObjectURL(newUserProfile.profile_picture) : getUser.profile.profile_picture" max-width="100%" max-height="100%"></v-img>
+                    </v-container>
+                    <v-file-input label="Profile picture" ref="imageFileField" v-model="newUserProfile.profile_picture" prepend-icon="mdi-image" color="black" hide-details type="file"></v-file-input>
+                    <v-text-field label="Firstname" v-model="newUserProfile.firstname" hide-details></v-text-field>
+                    <v-text-field label="Lastname" v-model="newUserProfile.lastname" hide-details></v-text-field>
+                    </v-form>
+                </v-card-text>
+                <v-card-actions class="justify-center">
+                <v-btn type="submit" form="updateProfileForm" :loading="clickedUpdateProfile" color="success">save</v-btn>
+                </v-card-actions>
+                </v-card>
+            </v-dialog>
+            <v-spacer></v-spacer>
             <v-btn text outlined :loading="clickedLogout" color="error" @click="logout(); clickedLogout = true;">
                 Logout
             </v-btn>

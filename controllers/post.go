@@ -1,10 +1,10 @@
 package controllers
 
 import (
-	"fmt"
 	"kwanjai/helpers"
 	"kwanjai/libraries"
 	"kwanjai/models"
+	"log"
 	"net/http"
 	"time"
 
@@ -59,8 +59,7 @@ func NewPost() gin.HandlerFunc {
 		}
 		getBoard, err := libraries.FirestoreFind("boards", post.Board)
 		if err != nil {
-			ginContext.JSON(http.StatusInternalServerError, err.Error())
-			return
+			log.Panicln(err)
 		}
 		if !getBoard.Exists() {
 			ginContext.JSON(http.StatusNotFound, "Board not found.")
@@ -119,7 +118,7 @@ func UpdatePost() gin.HandlerFunc {
 		post := new(models.Post)
 		ginContext.ShouldBindJSON(post)
 		if post.ID == "" {
-			ginContext.JSON(http.StatusBadRequest, gin.H{"message": "Invalid UUID."})
+			ginContext.JSON(http.StatusBadRequest, gin.H{"message": "Invalid ID."})
 			return
 		}
 
@@ -128,8 +127,11 @@ func UpdatePost() gin.HandlerFunc {
 			ginContext.JSON(http.StatusForbidden, gin.H{"message": "You cannot perform this action."})
 			return
 		}
-
-		fmt.Println(post.DueDate)
+		_, err := libraries.FirestoreFind("boards", post.Board)
+		if err != nil {
+			ginContext.JSON(http.StatusBadRequest, gin.H{"message": "Invalid board ID."})
+			return
+		}
 		status, message, _ := post.UpdatePost("Board", post.Board)
 		status, message, _ = post.UpdatePost("Title", post.Title)
 		status, message, _ = post.UpdatePost("Content", post.Content)

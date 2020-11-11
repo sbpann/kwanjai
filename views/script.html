@@ -452,7 +452,6 @@ $gin{define "script"}
                 dispatch('fetchPosts')
             } catch (error) {
                 errorResponseAlert(error)
-                location.reload()
             }
         },
         updatePost({ commit, dispatch }, post) {
@@ -464,7 +463,6 @@ $gin{define "script"}
             const post = getters['allPosts'].find(element => { return element.id == id })
             try {
                 await axios.patch('/api/post/update', post, { headers: await requestHeader() })
-                dispatch('fetchPosts')
             } catch (error) {
                 errorResponseAlert(error)
                 location.reload()
@@ -475,13 +473,12 @@ $gin{define "script"}
             const post = getters['allPosts'].find(element => { return element.id == id })
             try {
                 await axios.patch('/api/post/update', post, { headers: await requestHeader() })
-                dispatch('fetchPosts')
             } catch (error) {
                 errorResponseAlert(error)
                 location.reload()
             }
         },
-        async movePost({ commit, getters, rootGetters, dispatch }, { id, board, action }) {
+        async movePost({ commit, getters, rootGetters }, { id, board, action }) {
             const oldBoard = rootGetters['board/allBoards'].find(element => { return element.id == board })
             const oldPosition = oldBoard.position
             let newPosition
@@ -491,6 +488,9 @@ $gin{define "script"}
                 newPosition = oldPosition - 1
             }
             const newBoard = rootGetters['board/allBoards'].find(element => { return element.position == newPosition })
+            if (!newBoard.id) {
+                return
+            }
             try {
                 commit('setPostBoard', { id, newBoard })
             } catch {
@@ -499,7 +499,6 @@ $gin{define "script"}
             const post = getters['allPosts'].find(element => { return element.id == id })
             try {
                 await axios.patch('/api/post/update', post, { headers: await requestHeader() })
-                dispatch('fetchPosts')
             } catch (error) {
                 errorResponseAlert(error)
                 location.reload()
@@ -565,10 +564,15 @@ $gin{define "script"}
         data: () => ({
             projectsPage: 1,
             navigationDrawer: false,
+            profileEditorIsActivated: false,
+            profilePictureError: false,
+            currentUserProfile: {},
+            newUserProfile: {},
             loginForm: {},
             clickedLogin: false,
             clickedLogout: false,
             clickedRegister: false,
+            clickedUpdateProfile: false,
             clickedUpdateProject: false,
             clickedSubscribe: false,
             clickedUnsubscribe: false,
@@ -597,7 +601,8 @@ $gin{define "script"}
             newPostForm: {},
             updatePostFormIsActivated: false,
             currentPostData: {},
-            newPostData: {}
+            newPostData: {},
+            profilePicture: {}
         }),
         computed: {
             ...Vuex.mapGetters('authentication', ['getAuthenticationStatus', 'getUser']),
@@ -677,8 +682,45 @@ $gin{define "script"}
                 await this.register({ username, email, password });
                 location.reload()
             },
-            defaultProfilePicture(event) {
-                event.target.src = "https://storage.googleapis.com/kwanjai-a3803.appspot.com/anonymous.png"
+            createObjectURL(file) {
+                return URL.createObjectURL(file)
+            },
+            activateProfileEditor() {
+                this.profileEditorIsActivated = true
+                this.currentUserProfile = {
+                    firstname: this.getUser.profile.firstname,
+                    lastname: this.getUser.profile.lastname
+                }
+                this.newUserProfile = {
+                    ...this.currentUserProfile,
+                    profile_picture: null
+                }
+            },
+            async updateProfile() {
+                this.clickedUpdateProfile = true
+                if (this.newUserProfile.profile_picture) {
+                    const formData = new FormData()
+                    formData.append('file', this.newUserProfile.profile_picture)
+                    try {
+                        await axios.patch('/api/user/profile_picture', formData, { headers: await requestHeader() })
+                    } catch (error) {
+                        errorResponseAlert(error)
+                        location.reload()
+                    }
+                }
+                delete this.newUserProfile.profile_picture
+                const profileIsUpdate = JSON.stringify(this.newUserProfile) !== JSON.stringify(this.currentUserProfile)
+                if (profileIsUpdate) {
+                    try {
+                        await axios.patch('/api/user/update_profile', { firstname: this.newUserProfile.firstname, lastname: this.newUserProfile.lastname }, { headers: await requestHeader() })
+                    } catch (error) {
+                        errorResponseAlert(error)
+                        location.reload()
+                    }
+                }
+                await this.fecthUserData()
+                this.clickedUpdateProfile = false
+                this.profileEditorIsActivated = false
             },
             activeProjectUpdater(projectId, thisProject) {
                 this.projectUpdateFormIsActivated = true
@@ -700,9 +742,11 @@ $gin{define "script"}
                         )
                         if (!JSON.parse(`$gin{ .projectId }`)) {
                             this.$store.dispatch('project/updateProject', { ...this.newProjectData })
+                            await this.fetchProjects()
+                        } else {
+                            await this.fetchThisProject()
+                            document.title = `Project - ${this.thisProject.name}`
                         }
-                        await this.fetchThisProject()
-                        document.title = `Project - ${this.thisProject.name}`
                     } catch (error) {
                         errorResponseAlert(error)
                         location.reload()
@@ -793,7 +837,7 @@ $gin{define "script"}
                 }
                 this.updatePostFormIsActivated = false
                 this.clickedUpdatePost = false
-            }
+            },
         },
         async created() {
             const location = window.location.pathname

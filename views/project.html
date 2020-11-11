@@ -14,17 +14,25 @@
             <v-row>
                 <v-col cols="12" :class="$vuetify.breakpoint.smAndDown ? 'text-center text-h2' : 'text-center text-h1'">
                     {{ thisProject.name }}</v-col>
-                <v-col cols="2" :class="$vuetify.breakpoint.smAndDown ? 'text-h6' : 'text-h4'">Owner</v-col>
-                <v-col cols="10" :class="$vuetify.breakpoint.smAndDown ? 'text-h6' : 'text-h4'">Members</v-col>
-                <v-col cols="2" :class="$vuetify.breakpoint.smAndDown ? '' : 'text-h4'">{{ thisProject.user }}</v-col>
-                <v-col :cols="$vuetify.breakpoint.smAndDown ? 10 : 5">
+                <v-col :cols="$vuetify.breakpoint.smAndDown ? 3 : 2" :class="$vuetify.breakpoint.smAndDown ? 'text-h6' : 'text-h4'" style="border-left: 4px solid #9A1414;">Owner</v-col>
+                <v-col :cols="$vuetify.breakpoint.smAndDown ? 9 : 10" :class="$vuetify.breakpoint.smAndDown ? 'text-h6' : 'text-h4'" style="border-left: 4px solid #9A1414;">Members</v-col>
+                <v-col :cols="$vuetify.breakpoint.smAndDown ? 3 : 2" :class="$vuetify.breakpoint.smAndDown ? '' : 'text-h4'">
+                    <v-tooltip bottom>
+                        <template #activator="{ on, attrs }">
+                            <v-avatar size="35" v-bind="attrs" v-on="on">
+                                <v-img :src="`https://storage.googleapis.com/kwanjai-a3803.appspot.com/${thisProject.user}.png`" />
+                            </v-avatar>
+                        </template>
+                        <span>{{ thisProject.user }}</span>
+                    </v-tooltip>
+                </v-col>
+                <v-col :cols="$vuetify.breakpoint.smAndDown ? 9 : 5">
                     <v-tooltip
                         v-for="(member, index) in thisProject.members.filter((element, index) => {return index <= ($vuetify.breakpoint.smAndDown ? 4 :9)} )"
                         :key="index" bottom>
                         <template #activator="{ on, attrs }">
                             <v-avatar size="35" v-bind="attrs" v-on="on">
-                                <img :src="`https://storage.googleapis.com/kwanjai-a3803.appspot.com/${member}.png`"
-                                    @error="defaultProfilePicture" />
+                                <v-img :src="`https://storage.googleapis.com/kwanjai-a3803.appspot.com/${member}.png`"/>
                             </v-avatar>
                         </template>
                         <span>{{ member }}</span>
@@ -47,9 +55,9 @@
                                             {{ member }}
                                         </v-col>
                                         <v-col cols="10">
-                                            <v-avatar><img
-                                                    :src="`https://storage.googleapis.com/kwanjai-a3803.appspot.com/${member}.png`"
-                                                    @error="defaultProfilePicture" /></v-avatar>
+                                            <v-avatar>
+                                            <v-img :src="`https://storage.googleapis.com/kwanjai-a3803.appspot.com/${member}.png`"/>
+                                        </v-avatar>
                                         </v-col>
                                     </v-row>
                                 </v-card-text>
@@ -109,7 +117,7 @@
                 </v-dialog>
             </v-row>
             <v-row>
-                <v-dialog v-model="newPostFormIsActivated" hide-overlay max-width="600px">
+                <v-dialog v-model="newPostFormIsActivated" hide-overlay max-width="800px">
                     <v-card>
                         <v-card-text class="text-center pt-2">
                             <v-form id="newPostForm"
@@ -146,7 +154,7 @@
                             </v-card-actions>
                     </v-card>
                 </v-dialog>
-                <v-dialog v-model="updatePostFormIsActivated" hide-overlay max-width="500px">
+                <v-dialog v-model="updatePostFormIsActivated" hide-overlay max-width="800px">
                     <v-card>
                         <v-card-text class="text-center pt-2">
                             <v-form id="updatePostForm" @submit.prevent="updatePost()">

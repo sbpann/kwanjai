@@ -19,7 +19,7 @@ type Board struct {
 func (board *Board) CreateBoard() (int, string, *Board) {
 	reference, _, err := libraries.FirestoreAdd("boards", board)
 	if err != nil {
-		return http.StatusInternalServerError, err.Error(), nil
+		log.Panicln(err)
 	}
 	go libraries.FirestoreDeleteField("boards", reference.ID, "ID")
 	board.ID = reference.ID
@@ -43,7 +43,7 @@ func (board *Board) FindBoard() (int, string, *Board) {
 func (board *Board) UpdateBoard(field string, value interface{}) (int, string, *Board) {
 	_, err := libraries.FirestoreUpdateField("boards", board.ID, field, value)
 	if err != nil {
-		return http.StatusInternalServerError, err.Error(), nil
+		log.Panicln(err)
 	}
 	return http.StatusOK, "Updated sucessfully.", board
 }
@@ -51,7 +51,7 @@ func (board *Board) UpdateBoard(field string, value interface{}) (int, string, *
 func (board *Board) DeleteBoard() (int, string, *Board) {
 	_, err := libraries.FirestoreDelete("boards", board.ID)
 	if err != nil {
-		return http.StatusInternalServerError, err.Error(), nil
+		log.Panicln(err)
 	}
 	db := libraries.FirestoreDB()
 	searchPost := db.Collection("posts").Where("Board", "==", board.ID).Documents(config.Context)

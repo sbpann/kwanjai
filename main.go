@@ -29,8 +29,8 @@ func setupServer() {
 	}
 	libraries.InitializeGCP() // BaseDirectory need to be set before initialization.
 	config.Context = context.Background()
-	config.FrontendURL = "http://localhost:8080"
-	config.BackendURL = "http://localhost:8080"
+	config.FrontendURL = "https://kwanjai.pistex.dev"
+	config.BackendURL = "https://kwanjai.pistex.dev/api"
 	config.FirebaseProjectID = "kwanjai-a3803"
 	config.DefaultAuthenticationBackend = middlewares.JWTAuthorization()
 	config.EmailServicePassword, err = libraries.AccessSecretVersion("projects/978676563951/secrets/EmailServicePassword/versions/1")
@@ -63,15 +63,18 @@ func getServer(mode string) *gin.Engine {
 	authentication.POST("/login", controllers.Login())
 	authentication.POST("/register", controllers.Register())
 	authentication.POST("/logout", middlewares.AuthenticatedOnly(), controllers.Logout())
-	authentication.POST("/verify_email/:UUID", controllers.VerifyEmail())
+	authentication.POST("/verify_email/:ID", controllers.VerifyEmail())
 	authentication.POST("/resend_verification_email", controllers.ResendVerifyEmail())
 	authentication.POST("/token/refresh", controllers.RefreshToken())
 	authentication.GET("/token/verify", middlewares.AuthenticatedOnly(), controllers.TokenVerification())
 	user := api.Group("/user")
-	user.GET("/my_profile", middlewares.AuthenticatedOnly(), controllers.MyProfile())
-	user.GET("/all", middlewares.AuthenticatedOnly(), controllers.AllUsernames())
-	user.POST("/pay", middlewares.AuthenticatedOnly(), controllers.UpgradePlan())
-	user.POST("/unsubscribe", middlewares.AuthenticatedOnly(), controllers.Unsubscribe())
+	user.Use(middlewares.AuthenticatedOnly())
+	user.GET("/all", controllers.AllUsernames())
+	user.GET("/my_profile", controllers.MyProfile())
+	user.PATCH("/profile_picture", controllers.ProfilePicture())
+	user.PATCH("/update_profile", controllers.UpdateProfile())
+	user.POST("/pay", controllers.UpgradePlan())
+	user.POST("/unsubscribe", controllers.Unsubscribe())
 	project := api.Group("/project")
 	project.Use(middlewares.AuthenticatedOnly())
 	{
@@ -109,6 +112,10 @@ func getServer(mode string) *gin.Engine {
 	ginEngine.GET("/project/:ID", func(ginContext *gin.Context) {
 		projectID := ginContext.Param("ID")
 		ginContext.HTML(http.StatusOK, "project.html", gin.H{"projectId": projectID})
+	})
+	ginEngine.GET("/verify_email/:ID", func(ginContext *gin.Context) {
+		emailID := ginContext.Param("ID")
+		ginContext.HTML(http.StatusOK, "email_verification.html", gin.H{"emailID": emailID})
 	})
 	return ginEngine
 }

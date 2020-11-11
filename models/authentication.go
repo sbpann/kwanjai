@@ -2,6 +2,7 @@ package models
 
 import (
 	"kwanjai/libraries"
+	"log"
 	"net/http"
 	"strings"
 
@@ -53,7 +54,7 @@ func (login *LoginCredential) Login() (int, string) {
 		if err.Error() == userNotExist.Error() {
 			getEmail, err := libraries.FirestoreSearch("users", "Email", "==", login.ID)
 			if err != nil {
-				return http.StatusInternalServerError, err.Error()
+				log.Panicln(err)
 			}
 			if len(getEmail) > 0 {
 				hashedPassword = getEmail[0].Data()["HashedPassword"].(string)
@@ -62,7 +63,9 @@ func (login *LoginCredential) Login() (int, string) {
 				return http.StatusBadRequest, "Cannot login with provided credential."
 			}
 		} else {
-			return http.StatusInternalServerError, err.Error()
+			if err != nil {
+				log.Panicln(err)
+			}
 		}
 	} else {
 		hashedPassword = getUser.Data()["HashedPassword"].(string)
@@ -74,7 +77,7 @@ func (login *LoginCredential) Login() (int, string) {
 	}
 	_, err = libraries.FirestoreUpdateField("users", username, "IsActive", true)
 	if err != nil {
-		return http.StatusInternalServerError, err.Error()
+		log.Panicln(err)
 	}
 	return http.StatusOK, username
 }

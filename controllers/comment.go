@@ -4,6 +4,7 @@ import (
 	"kwanjai/helpers"
 	"kwanjai/libraries"
 	"kwanjai/models"
+	"log"
 	"net/http"
 	"time"
 
@@ -46,8 +47,7 @@ func NewComment() gin.HandlerFunc {
 		// Update to Firestore
 		_, err := libraries.FirestoreUpdateField("posts", post.ID, "Comments", post.Comments)
 		if err != nil {
-			ginContext.JSON(http.StatusInternalServerError, err.Error())
-			return
+			log.Panicln(err)
 		}
 		ginContext.JSON(http.StatusCreated,
 			gin.H{
@@ -106,8 +106,7 @@ func UpdateComment() gin.HandlerFunc {
 		// Update to Firestore
 		_, err := libraries.FirestoreUpdateField("posts", post.ID, "Comments", post.Comments)
 		if err != nil {
-			ginContext.JSON(http.StatusForbidden, gin.H{"message": "You cannot perform this action."})
-			return
+			log.Panicln(err)
 		}
 		ginContext.JSON(status,
 			gin.H{
@@ -165,8 +164,7 @@ func DeleteComment() gin.HandlerFunc {
 		// Update to Firestore
 		_, err := libraries.FirestoreUpdateField("posts", post.ID, "Comments", post.Comments)
 		if err != nil {
-			ginContext.JSON(http.StatusForbidden, gin.H{"message": "You cannot perform this action."})
-			return
+			log.Panicln(err)
 		}
 		ginContext.JSON(status,
 			gin.H{

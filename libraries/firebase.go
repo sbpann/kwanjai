@@ -33,7 +33,7 @@ func FirebaseApp() *firebase.App {
 		app, err = firebase.NewApp(config.Context, conf, sa)
 	}
 	if err != nil {
-		log.Println(err)
+		log.Panicln(err)
 	}
 	return app
 }
@@ -165,23 +165,39 @@ func FirestoreDeleteField(collecttion string, id string, field string) (*firesto
 }
 
 // CloudStorageUpload to
-func CloudStorageUpload(file multipart.File, path string) error {
+func CloudStorageUpload(file multipart.File, path string) {
 	image, _, err := image.Decode(file)
 	if err != nil {
-		return err
+		log.Panicln(err)
 	}
 	file.Close()
 	storageClient, err := FirebaseApp().Storage(config.Context)
 	if err != nil {
-		return err
+		log.Panicln(err)
 	}
 	newImage := resize.Thumbnail(200, 200, image, resize.Lanczos3)
 	bucket, err := storageClient.DefaultBucket()
 	if err != nil {
-		return err
+		log.Panicln(err)
 	}
 	fileWriter := bucket.Object(path).NewWriter(config.Context)
 	png.Encode(fileWriter, newImage)
 	fileWriter.Close()
-	return nil
+}
+
+func CreateProfilePicture(username string) {
+	storageClient, err := FirebaseApp().Storage(config.Context)
+	if err != nil {
+		log.Panicln(err)
+	}
+	bucket, err := storageClient.DefaultBucket()
+	if err != nil {
+		log.Panicln(err)
+	}
+	src := bucket.Object("anonymous.png")
+	dst := bucket.Object(username + ".png")
+	_, err = dst.CopierFrom(src).Run(config.Context)
+	if err != nil {
+		log.Panicln(err)
+	}
 }

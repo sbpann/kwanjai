@@ -2,6 +2,7 @@ package models
 
 import (
 	"kwanjai/libraries"
+	"log"
 	"net/http"
 	"time"
 )
@@ -20,7 +21,7 @@ func (project *Project) CreateProject() (int, string, *Project) {
 	project.CreatedDate = time.Now().Truncate(time.Microsecond)
 	reference, _, err := libraries.FirestoreAdd("projects", project)
 	if err != nil {
-		return http.StatusInternalServerError, err.Error(), nil
+		log.Panicln(err)
 	}
 	go libraries.FirestoreDeleteField("projects", reference.ID, "ID")
 	project.ID = reference.ID
@@ -42,9 +43,12 @@ func (project *Project) FindProject() (int, string, *Project) {
 
 func (project *Project) UpdateProject() (int, string, *Project) {
 	_, err := libraries.FirestoreUpdateField("projects", project.ID, "Name", project.Name)
+	if err != nil {
+		log.Panicln(err)
+	}
 	_, err = libraries.FirestoreUpdateField("projects", project.ID, "Members", project.Members)
 	if err != nil {
-		return http.StatusInternalServerError, err.Error(), nil
+		log.Panicln(err)
 	}
 	return http.StatusOK, "Updated sucessfully.", project
 }
@@ -52,7 +56,7 @@ func (project *Project) UpdateProject() (int, string, *Project) {
 func (project *Project) DeleteProject() (int, string, *Project) {
 	_, err := libraries.FirestoreDelete("projects", project.ID)
 	if err != nil {
-		return http.StatusInternalServerError, err.Error(), nil
+		log.Panicln(err)
 	}
 	return http.StatusOK, "Deleted sucessfully.", nil
 }

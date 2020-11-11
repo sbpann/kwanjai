@@ -3,6 +3,7 @@ package controllers
 import (
 	"kwanjai/config"
 	"kwanjai/libraries"
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -15,7 +16,7 @@ func AllUsernames() gin.HandlerFunc {
 		getUsername := db.Collection("users").Documents(config.Context)
 		allUsernames, err := getUsername.GetAll()
 		if err != nil {
-			ginContext.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+			log.Panicln(err)
 		}
 		for _, user := range allUsernames {
 			u := user.Data()["Username"].(string)

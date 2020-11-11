@@ -118,7 +118,7 @@ func DeleteProject() gin.HandlerFunc {
 		project := new(models.Project)
 		ginContext.ShouldBindJSON(project)
 		if project.ID == "" {
-			ginContext.JSON(http.StatusBadRequest, gin.H{"message": "Invalid UUID."})
+			ginContext.JSON(http.StatusBadRequest, gin.H{"message": "Invalid ID."})
 			return
 		}
 		copiedProject := new(models.Project)

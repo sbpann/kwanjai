@@ -146,7 +146,7 @@ func UpdateBoard() gin.HandlerFunc {
 		// If board position is changed
 		if oldPosition != newPosition {
 			if newPosition != oldPosition+1 && newPosition != oldPosition-1 {
-				ginContext.JSON(http.StatusInternalServerError, gin.H{"message": "Forbidden board position."})
+				ginContext.JSON(http.StatusBadRequest, gin.H{"message": "Forbidden board position."})
 				return
 			}
 			projectID := oldBoard.Project

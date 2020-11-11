@@ -2,6 +2,7 @@ package models
 
 import (
 	"kwanjai/libraries"
+	"log"
 	"net/http"
 	"time"
 )
@@ -44,7 +45,7 @@ func (post *Post) CreatePost() (int, string, *Post) {
 	post.initialize()
 	reference, _, err := libraries.FirestoreAdd("posts", post)
 	if err != nil {
-		return http.StatusInternalServerError, err.Error(), nil
+		log.Panicln(err)
 	}
 	go libraries.FirestoreDeleteField("posts", reference.ID, "ID")
 	post.ID = reference.ID
@@ -67,7 +68,7 @@ func (post *Post) FindPost() (int, string, *Post) {
 func (post *Post) UpdatePost(field string, value interface{}) (int, string, *Post) {
 	_, err := libraries.FirestoreUpdateField("posts", post.ID, field, value)
 	if err != nil {
-		return http.StatusInternalServerError, err.Error(), nil
+		log.Panicln(err)
 	}
 	return http.StatusOK, "Updated sucessfully.", post
 }
@@ -75,7 +76,7 @@ func (post *Post) UpdatePost(field string, value interface{}) (int, string, *Pos
 func (post *Post) DeletePost() (int, string, *Post) {
 	_, err := libraries.FirestoreDelete("posts", post.ID)
 	if err != nil {
-		return http.StatusInternalServerError, err.Error(), nil
+		log.Panicln(err)
 	}
 	return http.StatusOK, "Deleted sucessfully.", nil
 }

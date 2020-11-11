@@ -4,6 +4,7 @@ import (
 	"kwanjai/helpers"
 	"kwanjai/libraries"
 	"kwanjai/models"
+	"log"
 	"net/http"
 	"strings"
 
@@ -113,8 +114,7 @@ func Logout() gin.HandlerFunc {
 		if len(tokenSearch) == 0 {
 			_, err := libraries.FirestoreUpdateField("users", username, "IsActive", false)
 			if err != nil {
-				ginContext.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
-				return
+				log.Panicln(err)
 			}
 		}
 		ginContext.JSON(200, gin.H{"message": "User logged out successfully."})
@@ -142,15 +142,13 @@ func RefreshToken() gin.HandlerFunc {
 				ginContext.JSON(http.StatusUnauthorized, gin.H{"message": err.Error()})
 				return
 			}
-			ginContext.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
-			return
+			log.Panicln(err)
 		}
 		_, accessUsername, tokenID, err := libraries.VerifyToken(token.AccessToken, "access") // if token is expried here, it's got delete.
 		if accessUsername != "anonymous" && err == nil {                                      // user != "anonymous" means token is still valid.
 			_, err = libraries.FirestoreDelete("tokens", tokenID)
 			if err != nil {
-				ginContext.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
-				return
+				log.Panicln(err)
 			}
 		}
 		newToken, err := libraries.CreateToken("access", refreshUsername)
@@ -173,7 +171,7 @@ func PasswordUpdate() gin.HandlerFunc {
 	return func(ginContext *gin.Context) {
 		passwordForm := new(passwordUpdate)
 		if err := ginContext.ShouldBindJSON(passwordForm); err != nil {
-			ginContext.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+			ginContext.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 		}
 		if passwordForm.NewPassword1 != passwordForm.NewPassword2 {
 			ginContext.JSON(http.StatusBadRequest, gin.H{"message": "Password confrimation failed."})
