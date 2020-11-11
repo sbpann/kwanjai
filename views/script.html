@@ -8,7 +8,7 @@ $gin{define "script"}
 
     // Omise
     OmiseCard.configure({
-        publicKey: "pkey_test_5lr43m5s2v9k5iohgnp"
+        publicKey: "pkey_test_5lubzsiiv8bw36st1qh"
     })
     // helpers
     function errorResponseAlert(error) {
@@ -620,7 +620,9 @@ $gin{define "script"}
             newPostData: {},
             profilePicture: {},
             clickedResend: false,
-            emailIsResend: false
+            emailIsResend: false,
+            showAllPeople: false,
+            allPeople: []
         }),
         computed: {
             ...Vuex.mapGetters('authentication', ['getAuthenticationStatus', 'getUser']),

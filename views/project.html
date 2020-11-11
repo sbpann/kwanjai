@@ -187,6 +187,29 @@
                         </v-card-actions>
                     </v-card>
                 </v-dialog>
+                <v-dialog
+                    v-model="showAllPeople"
+                    hide-overlay
+                    max-width="500px"
+                >
+                    <v-card>
+                        <v-card-title>
+                            People
+                        </v-card-title>
+                        <v-card-text v-for="(people, index) in allPeople" :key="index">
+                            <v-row no-gutters>
+                                <v-col cols="2">
+                                    {{ people }}
+                                </v-col>
+                                <v-col cols="10">
+                                    <v-avatar>
+                                        <v-img :src="`https://storage.googleapis.com/kwanjai-a3803.appspot.com/${people}.png`" />
+                                    </v-avatar>
+                                </v-col>
+                            </v-row>
+                        </v-card-text>
+                    </v-card>
+                </v-dialog>
                 <v-col v-for="board in allBoards" :key="board.id" :cols="cardCols">
                     <v-card :class="!$vuetify.theme.dark ? 'pb-1 secondary' : 'pb-1 secondary'">
                         <v-card-actions class="pb-0" v-if="getUser.profile.username == thisProject.user">
@@ -276,7 +299,7 @@
                                 </v-tooltip>
                                 <v-tooltip v-if="post.people.length > 4" bottom>
                                     <template #activator="{ on, attrs }">
-                                        <v-avatar size="20" v-bind="attrs" v-on="on" @click="">
+                                        <v-avatar size="20" v-bind="attrs" v-on="on" @click="allPeople = post.people; showAllPeople = true;">
                                             +{{ post.people.length - 4}}
                                         </v-avatar>
                                     </template>

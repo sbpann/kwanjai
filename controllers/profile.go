@@ -16,6 +16,7 @@ import (
 	"github.com/omise/omise-go/schedule"
 )
 
+// ProfilePicture endpoint
 func ProfilePicture() gin.HandlerFunc {
 	return func(ginContext *gin.Context) {
 		file, _, _ := ginContext.Request.FormFile("file")
@@ -25,6 +26,7 @@ func ProfilePicture() gin.HandlerFunc {
 	}
 }
 
+// MyProfile endpoint
 func MyProfile() gin.HandlerFunc {
 	return func(ginContext *gin.Context) {
 		user, _ := ginContext.Get("user") // user always exists
@@ -38,6 +40,7 @@ func MyProfile() gin.HandlerFunc {
 	}
 }
 
+// UpdateProfile endpoint
 func UpdateProfile() gin.HandlerFunc {
 	return func(ginContext *gin.Context) {
 		profile := new(models.User)
@@ -56,6 +59,7 @@ type paymentData struct {
 	Price int    `json:"price"`
 }
 
+// UpgradePlan endpoint
 func UpgradePlan() gin.HandlerFunc {
 	return func(ginContext *gin.Context) {
 		user, _ := ginContext.Get("user")
@@ -177,6 +181,7 @@ func UpgradePlan() gin.HandlerFunc {
 	}
 }
 
+// Unsubscribe endpoint
 func Unsubscribe() gin.HandlerFunc {
 	return func(ginContext *gin.Context) {
 		user, _ := ginContext.Get("user")

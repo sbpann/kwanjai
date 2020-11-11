@@ -9,6 +9,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// AllUsernames endpoint
+// All usernames are shared to be added into projects.
 func AllUsernames() gin.HandlerFunc {
 	return func(ginContext *gin.Context) {
 		usernames := []string{}

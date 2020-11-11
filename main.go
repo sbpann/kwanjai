@@ -39,8 +39,8 @@ func setupServer() {
 	config.JWTRefreshTokenSecretKey, err = libraries.AccessSecretVersion("projects/978676563951/secrets/JWTRefreshTokenSecretKey/versions/1")
 	config.JWTAccessTokenLifetime = time.Hour * 2
 	config.JWTRefreshTokenLifetime = time.Hour * 8
-	config.OmisePublicKey = "pkey_test_5lr43m5s2v9k5iohgnp"
-	config.OmiseSecretKey = "skey_test_5lr43m5sdusunx0goly"
+	config.OmisePublicKey, err = libraries.AccessSecretVersion("projects/978676563951/secrets/OmisePublicKey/versions/1")
+	config.OmiseSecretKey, err = libraries.AccessSecretVersion("projects/978676563951/secrets/OmiseSecretKey/versions/1")
 	if err != nil {
 		log.Fatalln(err)
 	}
