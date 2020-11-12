@@ -11,12 +11,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type passwordUpdate struct {
-	OldPassword  string `json:"old_password" binding:"required,min=8"`
-	NewPassword1 string `json:"new_password1" binding:"required,min=8"`
-	NewPassword2 string `json:"new_password2" binding:"required,min=8"`
-}
-
 // Login endpoint
 func Login() gin.HandlerFunc {
 	return func(ginContext *gin.Context) {
@@ -164,6 +158,12 @@ func TokenVerification() gin.HandlerFunc {
 	return func(ginContext *gin.Context) {
 		ginContext.Status(http.StatusOK)
 	}
+}
+
+type passwordUpdate struct {
+	OldPassword  string `json:"old_password" binding:"required,min=8"`
+	NewPassword1 string `json:"new_password1" binding:"required,min=8"`
+	NewPassword2 string `json:"new_password2" binding:"required,min=8"`
 }
 
 // PasswordUpdate endpoint

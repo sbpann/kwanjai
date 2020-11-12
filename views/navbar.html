@@ -123,8 +123,9 @@ $gin{define "navbar"}
                 {{ getUser.profile.is_verified ? 'verified' : 'not verified' }}
             </v-chip>
             <p class="my-0 py-1">
-                <v-btn :disabled="emailIsResend" v-if="!getUser.profile.is_verified" color="info" text x-small :loading="clickedResend"
-                    @click="resendEmail()">{{ emailIsResend ? 'sent' : 'resend verification email' }}</v-btn>
+                <v-btn :disabled="emailIsResend" v-if="!getUser.profile.is_verified" color="info" text x-small
+                    :loading="clickedResend" @click="resendEmail()">
+                    {{ emailIsResend ? 'sent' : 'resend verification email' }}</v-btn>
             </p>
             <p>
                 {{ getUser.profile.email }}
@@ -188,7 +189,7 @@ $gin{define "navbar"}
         </v-card-text>
         <v-card-actions class="justify-center">
             <v-form id="checkoutForm" @submit.prevent="subscribe()">
-                <v-btn type="submit" id="checkoutButton" color="info">
+                <v-btn :disabled="!selectedPlan" type="submit" id="checkoutButton" color="info">
                     {{ getUser.profile.plan != 'Pro' ? 'Upgrade' : 'Change Plan' }}</v-btn>
             </v-form>
         </v-card-actions>
@@ -228,8 +229,23 @@ $gin{define "navbar"}
                         </v-form>
                     </v-card-text>
                     <v-card-actions class="justify-center">
-                        <v-btn type="submit" form="updateProfileForm" :loading="clickedUpdateProfile" color="success">
+                        <v-btn type="submit" form="updateProfileForm" :loading="clickedUpdateProfile">
                             save</v-btn>
+                    </v-card-actions>
+                    <v-card-text>
+                        <v-form @submit.prevent="updatePassword" id="updatePasswordForm">
+                            <v-text-field type="password" label="Old password" v-model="updatePasswordForm.old_password" hide-details>
+                            </v-text-field>
+                            <v-text-field type="password" label="New password" v-model="updatePasswordForm.new_password1" hide-details>
+                            </v-text-field>
+                            <v-text-field type="password" label="Confirm password" v-model="updatePasswordForm.new_password2"
+                                hide-details>
+                            </v-text-field>
+                        </v-form>
+                    </v-card-text>
+                    <v-card-actions class="justify-center">
+                        <v-btn type="submit" form="updatePasswordForm" :loading="clickedUpdatePassword">
+                            Update password</v-btn>
                     </v-card-actions>
                 </v-card>
             </v-dialog>

@@ -187,11 +187,7 @@
                         </v-card-actions>
                     </v-card>
                 </v-dialog>
-                <v-dialog
-                    v-model="showAllPeople"
-                    hide-overlay
-                    max-width="500px"
-                >
+                <v-dialog v-model="showAllPeople" hide-overlay max-width="500px">
                     <v-card>
                         <v-card-title>
                             People
@@ -203,11 +199,64 @@
                                 </v-col>
                                 <v-col cols="10">
                                     <v-avatar>
-                                        <v-img :src="`https://storage.googleapis.com/kwanjai-a3803.appspot.com/${people}.png`" />
+                                        <v-img
+                                            :src="`https://storage.googleapis.com/kwanjai-a3803.appspot.com/${people}.png`" />
                                     </v-avatar>
                                 </v-col>
                             </v-row>
                         </v-card-text>
+                    </v-card>
+                </v-dialog>
+                <v-dialog v-model="commentBoxIsActivated" hide-overlay max-width="800px">
+                    <v-card>
+                        <v-card-title>
+                            Comments
+                        </v-card-title>
+                        <v-card class="pl-2 ma-2"
+                            v-for="comment in commentingPost ? allPosts.find(element => {return element.id == commentingPost}).comments: []"
+                            :key="comment.uuid">
+                            <v-card-actions class="pb-0" v-if="comment.user == getUser.profile.username">
+                                <v-spacer></v-spacer>
+                                <v-btn x-small icon :loading="!comment.uuid"
+                                    @click="activateCommentEditior(comment.uuid)">
+                                    <v-icon x-small>mdi-pencil</v-icon>
+                                </v-btn>
+                                <v-btn x-small :loading="!comment.uuid" icon @click="deleteComment(comment.uuid)">
+                                    <v-icon x-small>mdi-delete</v-icon>
+                                </v-btn>
+                            </v-card-actions>
+                            <v-card-title class="pt-0">
+                                <v-tooltip top>
+                                    <template #activator="{ on, attrs }">
+                                        <v-avatar size="35" v-bind="attrs" v-on="on">
+                                            <v-img
+                                                :src="`https://storage.googleapis.com/kwanjai-a3803.appspot.com/${comment.user}.png`" />
+                                        </v-avatar>
+                                    </template>
+                                    <span>{{ comment.user }}</span>
+                                </v-tooltip>
+                            </v-card-title>
+                            <v-card-subtitle class="pb-1">
+                                <small>
+                                    Added date: {{ new Date(comment.added_date).toLocaleString() }} Last modified:
+                                    {{ new Date(comment.last_modified).toLocaleString() }}
+                                </small>
+                            </v-card-subtitle>
+                            <v-card-text :id="`comment_${comment.uuid}`">
+                                {{ comment.body }}
+                            </v-card-text>
+                            <v-card-text :id="`comment_editor_${comment.uuid}`" style="display: none;">
+                                <v-textarea v-model="editingComment" label="Edit comment"></v-textarea>
+                                <v-btn @click="updateComment(comment.uuid)">update</v-btn>
+                            </v-card-text>
+                        </v-card>
+                        <v-card-text>
+                            <v-textarea v-model="commentBody"></v-textarea>
+                        </v-card-text>
+                        <v-card-actions>
+                            <v-spacer></v-spacer>
+                            <v-btn :loading="clickedComment" @click="addComment()">comment</v-btn>
+                        </v-card-actions>
                     </v-card>
                 </v-dialog>
                 <v-col v-for="board in allBoards" :key="board.id" :cols="cardCols">
@@ -237,8 +286,10 @@
                         <v-card-title :class="$vuetify.breakpoint.smAndDown ? 'py-2' : 'py-2 text-h5'">
                             {{ board.name }}
                         </v-card-title>
-
-                        <v-card class="ma-2" v-for="post in allPosts.filter(post => {return post.board == board.id})"
+                        <v-card-subtitle class="py-1" v-if="allPosts.filter(post => {return post.board == board.id}).length > 0">
+                            <input type="checkbox" v-model="onlyTagged[board.id]"> Show only tagged tasks.
+                        </v-card-subtitle>
+                        <v-card class="ma-2" v-for="post in allPosts.filter(post => {return post.board == board.id}).filter(post => {return (post.people.includes(getUser.profile.username) || !onlyTagged[board.id])})"
                             :style="`border-left: 4px solid ${post.completed ? 'green' : (new Date(post.due_date) < new Date() ? 'red' : (post.urgent ? 'orange': ''))}`">
                             <v-card-actions class="pb-0" v-if="getUser.profile.username == post.user">
                                 <v-btn x-small icon :loading="!post.id" :color="post.completed ? 'green' : ''"
@@ -287,7 +338,7 @@
                                     <span>no people tagged in this task</span>
                                 </v-tooltip>
                                 <v-tooltip
-                                    v-for="(people, index) in post.people.filter((element, index) => {return index <= 4} )"
+                                    v-for="(people, index) in post.people.filter((element, index) => {return index <= 3} )"
                                     :key="index" bottom>
                                     <template #activator="{ on, attrs }">
                                         <v-avatar size="20" v-bind="attrs" v-on="on">
@@ -297,15 +348,21 @@
                                     </template>
                                     <span>{{ people }}</span>
                                 </v-tooltip>
-                                <v-tooltip v-if="post.people.length > 4" bottom>
+                                <v-tooltip v-if="post.people.length > 3" bottom>
                                     <template #activator="{ on, attrs }">
-                                        <v-avatar size="20" v-bind="attrs" v-on="on" @click="allPeople = post.people; showAllPeople = true;">
-                                            +{{ post.people.length - 4}}
+                                        <v-avatar size="20" v-bind="attrs" v-on="on"
+                                            @click="allPeople = post.people; showAllPeople = true;">
+                                            +{{ post.people.length - 3}}
                                         </v-avatar>
                                     </template>
-                                    <span>+{{ post.people.length - 4}}</span>
+                                    <span>+{{ post.people.length - 3}}</span>
                                 </v-tooltip>
                             </v-card-subtitle>
+                            <v-card-actions class="pt-0 justify-end">
+                                <v-btn icon @click="activateCommentBox(post.id)">{{ post.comments.length }}<v-icon
+                                        x-small>mdi-comment</v-icon>
+                                </v-btn>
+                            </v-card-actions>
                         </v-card>
                     </v-card>
                 </v-col>

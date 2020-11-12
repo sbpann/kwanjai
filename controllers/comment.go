@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"kwanjai/helpers"
 	"kwanjai/libraries"
 	"kwanjai/models"
@@ -70,12 +71,14 @@ func UpdateComment() gin.HandlerFunc {
 			ginContext.JSON(http.StatusBadRequest, gin.H{"message": "Invalid comment form."})
 			return
 		}
+		fmt.Println("input", post.Comments)
 		// Copy data before find post
 		comment := new(models.Comment)
 		comment.UUID = post.Comments[0].UUID
 		comment.Body = post.Comments[0].Body
 		comment.LastModified = time.Now().Truncate(time.Millisecond)
 		status, message, post := post.FindPost()
+		fmt.Println("before", post.Comments)
 		if status != http.StatusOK {
 			ginContext.JSON(status, gin.H{"message": message})
 			return
@@ -94,6 +97,7 @@ func UpdateComment() gin.HandlerFunc {
 			}
 			found = false
 		}
+		fmt.Println("update", post.Comments)
 		if !found {
 			ginContext.JSON(http.StatusNotFound, gin.H{"message": "Comment not found."})
 			return

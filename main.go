@@ -74,6 +74,7 @@ func getServer(mode string) *gin.Engine {
 	user.PATCH("/profile_picture", controllers.ProfilePicture())
 	user.PATCH("/update_profile", controllers.UpdateProfile())
 	user.POST("/pay", controllers.UpgradePlan())
+	user.POST("/update_password", controllers.PasswordUpdate())
 	user.POST("/unsubscribe", controllers.Unsubscribe())
 	project := api.Group("/project")
 	project.Use(middlewares.AuthenticatedOnly())

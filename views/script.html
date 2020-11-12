@@ -528,7 +528,7 @@ $gin{define "script"}
             state.allPosts[index] = { ...post }
         },
         removePost(state, id) {
-            state.allPosts = state.allPosts.filter(element => {return element.id !== id})
+            state.allPosts = state.allPosts.filter(element => { return element.id !== id })
         },
         toggleCompleteStatus(state, { id, board }) {
             state.allPosts.find(element => { return element.id == id }).completed = !state.allPosts.find(element => { return element.id == id }).completed
@@ -593,6 +593,7 @@ $gin{define "script"}
             clickedUpdateBoard: false,
             clickedUpdatePost: false,
             clickedVerifyEmail: false,
+            clickedComment: false,
             emailKey: '',
             projectCreateFormIsActivated: false,
             projectCreateForm: {},
@@ -622,7 +623,14 @@ $gin{define "script"}
             clickedResend: false,
             emailIsResend: false,
             showAllPeople: false,
-            allPeople: []
+            allPeople: [],
+            commentBoxIsActivated: false,
+            commentingPost: '',
+            commentBody: '',
+            editingComment: '',
+            onlyTagged: {},
+            clickedUpdatePassword: false,
+            updatePasswordForm: {}
         }),
         computed: {
             ...Vuex.mapGetters('authentication', ['getAuthenticationStatus', 'getUser']),
@@ -716,6 +724,28 @@ $gin{define "script"}
                     profile_picture: null
                 }
             },
+            async verifyEmail() {
+                const emailID = JSON.parse(`$gin{ .emailID }`)
+                try {
+                    await axios.post(`/api/authentication/verify_email/${emailID}`, { key: this.emailKey })
+                    alert('Verified successfully.')
+                    window.location = '/'
+                } catch (error) {
+                    errorResponseAlert(error)
+                    location.reload()
+                }
+            },
+            async resendEmail() {
+                this.clickedResend = true
+                try {
+                    await axios.post(`/api/authentication/resend_verification_email`, { email: this.getUser.profile.email }, { headers: await requestHeader() })
+                } catch (error) {
+                    errorResponseAlert(error)
+                    location.reload()
+                }
+                this.clickedResend = false
+                this.emailIsResend = true
+            },
             async updateProfile() {
                 this.clickedUpdateProfile = true
                 if (this.newUserProfile.profile_picture) {
@@ -804,6 +834,18 @@ $gin{define "script"}
                     location.reload()
                 }
             },
+            async updatePassword(){
+                this.clickedUpdatePassword = true
+                try {
+                    await axios.post('/api/user/update_password', { ...this.updatePasswordForm }, { headers: await requestHeader() })
+                } catch (error) {
+                    errorResponseAlert(error)
+                    location.reload()
+                }
+                this.updatePasswordForm = {}
+                this.clickedUpdatePassword = false
+                this.profileEditorIsActivated = false
+            },
             // project page
             activeBoardUpdater(boardId) {
                 this.updateBoardFormIsActivate = true
@@ -858,27 +900,79 @@ $gin{define "script"}
                 this.updatePostFormIsActivated = false
                 this.clickedUpdatePost = false
             },
-            async verifyEmail() {
-                const emailID = JSON.parse(`$gin{ .emailID }`)
+            activateCommentBox(postID) {
+                this.commentBoxIsActivated = true
+                this.commentingPost = postID
+            },
+            async addComment() {
+                this.clickedComment = true
+                const comment = {
+                    uuid: '',
+                    user: this.getUser.profile.username,
+                    body: this.commentBody,
+                    added_date: new Date().toISOString(),
+                    last_modified: new Date().toISOString()
+                }
+                let post = this.allPosts.find(element => { return element.id == this.commentingPost })
+                post.comments.push({ ...comment })
+                const copied1 = { ...post }
+                let copied2 = { ...post }
+                copied2.comments = []
+                copied2.comments.push({ ...comment })
+                this.commentBody = ''
                 try {
-                    await axios.post(`/api/authentication/verify_email/${emailID}`, { key: this.emailKey })
-                    alert('Verified successfully.')
-                    window.location = '/'
+                    await axios.post('/api/post/comment/new', copied2, { headers: await requestHeader() })
+                    this.$store.dispatch('post/updatePost', copied1)
                 } catch (error) {
                     errorResponseAlert(error)
                     location.reload()
+                }
+                this.clickedComment = false
+            },
+            async deleteComment(commentUUID) {
+                let post = { ...this.allPosts.find(element => { return element.id == this.commentingPost }) }
+                let deleteData = { ...this.allPosts.find(element => { return element.id == this.commentingPost }) }
+                post.comments = post.comments.filter(element => { return element.uuid !== commentUUID }) // use uuid here
+                deleteData.comments = deleteData.comments.filter(element => { return element.uuid == commentUUID }) // user uuid here
+                try {
+                    await axios.delete('/api/post/comment/delete', { headers: await requestHeader(), data: { ...deleteData } })
+                    this.$store.dispatch('post/updatePost', post)
+                } catch (error) {
+                    errorResponseAlert(error)
+                    location.reload()
+                }
+                this.clickedComment = false
+            },
+            activateCommentEditior(commentUUID) {
+                this.editingComment = this.allPosts.find(element => element.id == this.commentingPost).comments.find(element => { return element.uuid == commentUUID }).body
+                const commentElement = document.getElementById(`comment_${commentUUID}`)
+                const commentEditor = document.getElementById(`comment_editor_${commentUUID}`)
+                if (commentElement.style.display === '' && commentEditor.style.display === 'none') {
+                    commentElement.style.display = 'none'
+                    commentEditor.style.display = ''
+                } else {
+                    commentElement.style.display = ''
+                    commentEditor.style.display = 'none'
                 }
             },
-            async resendEmail() {
-                this.clickedResend = true
+            async updateComment(commentUUID) {
+                let post = { ...this.allPosts.find(element => { return element.id == this.commentingPost }) }
+                let updateData = { ...this.allPosts.find(element => { return element.id == this.commentingPost }) }
+                const commentIndex = post.comments.findIndex((element) => { return element.uuid == commentUUID })
+                post.comments[commentIndex].body = this.editingComment
+                updateData.comments = updateData.comments.filter(element => { return element.uuid == commentUUID }) // user uuid here
+                updateData.comments[0].body = this.editingComment
                 try {
-                    await axios.post(`/api/authentication/resend_verification_email`, { email: this.getUser.profile.email }, { headers: await requestHeader() })
+                    await axios.patch('/api/post/comment/update', updateData, { headers: await requestHeader() })
+                    this.$store.dispatch('post/updatePost', post)
                 } catch (error) {
                     errorResponseAlert(error)
                     location.reload()
                 }
-                this.clickedResend = false
-                this.emailIsResend = true
+                const commentElement = document.getElementById(`comment_${commentUUID}`)
+                const commentEditor = document.getElementById(`comment_editor_${commentUUID}`)
+                commentElement.style.display = ''
+                commentEditor.style.display = 'none'
             }
         },
         async created() {
