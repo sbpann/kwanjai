@@ -22,7 +22,7 @@ func ProfilePicture() gin.HandlerFunc {
 		file, _, _ := ginContext.Request.FormFile("file")
 		user, _ := ginContext.Get("user")
 		libraries.CloudStorageUpload(file, user.(*models.User).Username+".png")
-		ginContext.JSON(http.StatusOK, gin.H{"message": "uploaded"})
+		ginContext.JSON(http.StatusOK, gin.H{"message": "Uploaded."})
 	}
 }
 
@@ -176,7 +176,7 @@ func UpgradePlan() gin.HandlerFunc {
 		}
 
 		ginContext.JSON(http.StatusOK, gin.H{
-			"message": "Subscribed successfully",
+			"message": "Subscribed successfully.",
 		})
 	}
 }
@@ -211,7 +211,7 @@ func Unsubscribe() gin.HandlerFunc {
 			log.Panicln(err)
 		}
 		ginContext.JSON(http.StatusOK, gin.H{
-			"message": "Unsubscribed successfully",
+			"message": "Unsubscribed successfully.",
 		})
 	}
 }

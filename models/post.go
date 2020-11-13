@@ -15,9 +15,9 @@ type Post struct {
 	User         string     `json:"user"`
 	Title        string     `json:"title" binding:"required"`
 	Content      string     `json:"content" binding:"required"`
-	Comments     []*Comment `json:"comments"`
 	Completed    bool       `json:"completed"`
 	Urgent       bool       `json:"urgent"`
+	Comments     []*Comment `json:"comments"`
 	People       []string   `json:"people"`
 	AddedDate    time.Time  `json:"added_date"`
 	LastModified time.Time  `json:"last_modified"`
