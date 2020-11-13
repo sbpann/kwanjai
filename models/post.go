@@ -41,6 +41,7 @@ func (post *Post) initialize() {
 	post.LastModified = now
 }
 
+// CreatePost method returns status (int), message (string), post object.
 func (post *Post) CreatePost() (int, string, *Post) {
 	post.initialize()
 	reference, _, err := libraries.FirestoreAdd("posts", post)
@@ -52,6 +53,7 @@ func (post *Post) CreatePost() (int, string, *Post) {
 	return http.StatusCreated, "Created post.", post
 }
 
+// FindPost method returns status (int), message (string), post object.
 func (post *Post) FindPost() (int, string, *Post) {
 	if post.ID == "" {
 		return http.StatusNotFound, "Post not found.", nil
@@ -65,6 +67,7 @@ func (post *Post) FindPost() (int, string, *Post) {
 	return http.StatusNotFound, "Post not found.", nil
 }
 
+// UpdatePost method returns status (int), message (string), post object.
 func (post *Post) UpdatePost(field string, value interface{}) (int, string, *Post) {
 	_, err := libraries.FirestoreUpdateField("posts", post.ID, field, value)
 	if err != nil {
@@ -73,6 +76,7 @@ func (post *Post) UpdatePost(field string, value interface{}) (int, string, *Pos
 	return http.StatusOK, "Updated sucessfully.", post
 }
 
+// DeletePost method returns status (int), message (string), nil object.
 func (post *Post) DeletePost() (int, string, *Post) {
 	_, err := libraries.FirestoreDelete("posts", post.ID)
 	if err != nil {

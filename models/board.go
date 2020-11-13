@@ -16,6 +16,7 @@ type Board struct {
 	Position int    `json:"position"`
 }
 
+// CreateBoard method returns status (int), message (string), board object.
 func (board *Board) CreateBoard() (int, string, *Board) {
 	reference, _, err := libraries.FirestoreAdd("boards", board)
 	if err != nil {
@@ -26,6 +27,7 @@ func (board *Board) CreateBoard() (int, string, *Board) {
 	return http.StatusCreated, "Created board.", board
 }
 
+// FindBoard method returns status (int), message (string), board object.
 func (board *Board) FindBoard() (int, string, *Board) {
 	if board.ID == "" {
 		return http.StatusNotFound, "Board not found.", nil
@@ -48,6 +50,7 @@ func (board *Board) UpdateBoard(field string, value interface{}) (int, string, *
 	return http.StatusOK, "Updated sucessfully.", board
 }
 
+// DeleteBoard method returns status (int), message (string), nil object.
 func (board *Board) DeleteBoard() (int, string, *Board) {
 	_, err := libraries.FirestoreDelete("boards", board.ID)
 	if err != nil {

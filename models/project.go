@@ -16,6 +16,7 @@ type Project struct {
 	CreatedDate time.Time `json:"created_date"`
 }
 
+// CreateProject method returns status (int), message (string), project object.
 func (project *Project) CreateProject() (int, string, *Project) {
 	project.Members = append(project.Members, project.User)
 	project.CreatedDate = time.Now().Truncate(time.Microsecond)
@@ -28,6 +29,7 @@ func (project *Project) CreateProject() (int, string, *Project) {
 	return http.StatusCreated, "Created project.", project
 }
 
+// FindProject method returns status (int), message (string), project object.
 func (project *Project) FindProject() (int, string, *Project) {
 	if project.ID == "" {
 		return http.StatusNotFound, "Project not found.", nil
@@ -41,6 +43,7 @@ func (project *Project) FindProject() (int, string, *Project) {
 	return http.StatusNotFound, "Project not found.", nil
 }
 
+// UpdateProject method returns status (int), message (string), project object.
 func (project *Project) UpdateProject() (int, string, *Project) {
 	_, err := libraries.FirestoreUpdateField("projects", project.ID, "Name", project.Name)
 	if err != nil {
@@ -53,6 +56,7 @@ func (project *Project) UpdateProject() (int, string, *Project) {
 	return http.StatusOK, "Updated sucessfully.", project
 }
 
+// DeleteProject method returns status (int), message (string), nil object.
 func (project *Project) DeleteProject() (int, string, *Project) {
 	_, err := libraries.FirestoreDelete("projects", project.ID)
 	if err != nil {
