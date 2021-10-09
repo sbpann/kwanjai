@@ -43,4 +43,4 @@ jobs:
       run: cd server && cp sample.env .env
 
     - name: Test
-      run: cd server && go test ./... -v
+      run: go test ./... -v
