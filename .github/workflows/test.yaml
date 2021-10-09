@@ -1,6 +1,9 @@
 name: Run unit tests
 
-on: [ push ]
+on:
+  push:
+    branches:
+      - '*'
 
 jobs:
 
