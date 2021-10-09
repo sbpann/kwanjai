@@ -39,8 +39,5 @@ jobs:
         password: my_test_password
         url: jdbc:postgresql://test-db:5432/my_test_database
 
-    - name: Setup env
-      run: cd server && cp sample.env .env
-
     - name: Test
-      run: ls && pwd && go test ./... -v
+      run: cd server && cp sample.env .env && go test ./... -v
