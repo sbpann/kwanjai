@@ -38,6 +38,9 @@ jobs:
         username: my_test_user
         password: my_test_password
         url: jdbc:postgresql://test-db:5432/my_test_database
+        
 
     - name: Test
+      env:
+        SQL_TEST_HOST: 0.0.0.0
       run: cd server && cp sample.env .env && go test ./... -v
