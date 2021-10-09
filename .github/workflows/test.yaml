@@ -1,0 +1,49 @@
+name: Run unit tests
+
+on: [ push ]
+
+jobs:
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+
+    services:
+      test-db:
+        image: postgres:12-alpine
+        env:
+          POSTGRES_USER: my_test_user
+          POSTGRES_PASSWORD: my_test_password
+          POSTGRES_DB: my_test_database
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+
+    - name: Install go
+      uses: actions/setup-go@v2
+      with:
+        go-version: ^1.17
+
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: migrate
+      uses: liquibase/liquibase-github-action@v3
+      with:
+        operation: 'update'
+        classpath: 'server/database/migration'
+        changeLogFile: 'db.changelog-master.xml'
+        username: my_test_user
+        password: my_test_password
+        url: jdbc:postgresql://test-db:5432/my_test_database
+  
+    - name: Run migrations
+      run: make migrateup
+
+    - name: Test
+      run: make e2e
