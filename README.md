@@ -1,3 +1,6 @@
+# Archive
+# No longer maintained
+
 # Kwanjai
 
 Kwanjai is an MVP Kanban board built with Gin (GO web framework) and Vue.js. The app itself is made for experimental purpose to show how to implement SaaS in GO and show frontend integration.
